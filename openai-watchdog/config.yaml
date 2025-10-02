@@ -1,6 +1,6 @@
 name: "OpenAI Watchdog"
 description: "Intelligent Home Assistant monitoring with continuous OpenAI analysis"
-version: "0.1.0"
+version: "1.0.0"
 slug: "openai_watchdog"
 init: false
 
@@ -17,6 +17,10 @@ ingress: false
 panel_icon: mdi:shield-search
 panel_title: "OpenAI Watchdog"
 panel_admin: true
+
+# Service startup configuration
+startup: services
+boot: auto
 
 # Add-on configuration options
 options:
