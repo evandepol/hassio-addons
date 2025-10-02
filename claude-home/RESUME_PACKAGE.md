@@ -72,7 +72,7 @@ Claude Code CLI installed via npm uses `#!/usr/bin/env -S node` shebang which Bu
 
 ### Option 4: Custom Container Strategy
 **Implementation:**
-- Publish ideal container to `ghcr.io/cabinlab/claude-home`
+- Publish ideal container to `ghcr.io/evandepol/claude-home`
 - Use `node:alpine` + coreutils base (no BusyBox issues)
 - HA add-on becomes thin adapter layer that:
   - Inherits from custom container

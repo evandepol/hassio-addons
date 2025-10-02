@@ -13,7 +13,7 @@ arch:
   - i386
 
 # External resources
-url: "https://github.com/cabinlab/hassio-addons"
+url: "https://github.com/evandepol/hassio-addons"
 
 # Service startup configuration
 startup: services

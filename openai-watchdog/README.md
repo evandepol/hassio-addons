@@ -1,14 +1,14 @@
-# Claude Watchdog for Home Assistant
+# OpenAI Watchdog for Home Assistant
 
-[![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=claude_watchdog&repository_url=https%3A%2F%2Fgithub.com%2Fevandepol%2Fhassio-addons)
+[![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=openai_watchdog&repository_url=https%3A%2F%2Fgithub.com%2Fevandepol%2Fhassio-addons)
 
-Intelligent continuous monitoring for Home Assistant using Claude AI. Claude Watchdog runs in the background, analyzing your system state changes and providing proactive insights, security monitoring, and optimization recommendations.
+Intelligent continuous monitoring for Home Assistant using OpenAI. OpenAI Watchdog runs in the background, analyzing your system state changes and providing proactive insights, security monitoring, and optimization recommendations.
 
-## What is Claude Watchdog?
+## What is OpenAI Watchdog?
 
-Claude Watchdog is a revolutionary Home Assistant add-on that provides:
+OpenAI Watchdog is a revolutionary Home Assistant add-on that provides:
 
-- **Continuous AI Monitoring**: Uses Claude 3.5 Haiku for fast, cost-effective analysis
+- **Continuous AI Monitoring**: Uses OpenAI GPT models for intelligent, cost-effective analysis
 - **Proactive Insights**: Identifies patterns and anomalies before they become problems
 - **Intelligent Alerts**: Smart notifications based on confidence levels and context
 - **Energy Optimization**: Detects efficiency opportunities and wasteful patterns
@@ -20,24 +20,29 @@ Claude Watchdog is a revolutionary Home Assistant add-on that provides:
 - **Real-time State Analysis**: Monitors entity state changes across your Home Assistant system
 - **Multi-Domain Monitoring**: Climate, security, energy, automation performance, and device health
 - **Cost-Controlled**: Built-in cost tracking with daily limits to prevent unexpected charges
-- **Learning Patterns**: Adapts to your home's normal behavior patterns over time
+- **Smart Analysis**: Uses OpenAI GPT models for intelligent pattern recognition
+- **Structured Insights**: JSON-formatted analysis with confidence levels and recommended actions
 - **Smart Notifications**: Configurable alerts via Home Assistant notification services
 - **Comprehensive Logging**: Detailed insights and analysis history
+- **Development Mode**: Mock analysis for testing without API costs
 
 ## Installation
 
+📋 **For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md)**
+
 ### Quick Install
-[![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=claude_watchdog&repository_url=https%3A%2F%2Fgithub.com%2Fevandepol%2Fhassio-addons)
+[![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=openai_watchdog&repository_url=https%3A%2F%2Fgithub.com%2Fevandepol%2Fhassio-addons)
 
 ### Manual Installation
 1. Add this repository to your Home Assistant add-on store:
 
    [![Open your Home Assistant instance and show the add add-on repository dialog with this repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fevandepol%2Fhassio-addons)
 
-2. Install the "Claude Watchdog" add-on
-3. Configure your monitoring preferences (see configuration section below)
+2. Install the "OpenAI Watchdog" add-on
+3. Configure your OpenAI API key in the add-on configuration
 4. Start the add-on
-5. Configure your Anthropic API credentials (see credentials section)
+
+**Dependencies**: All required packages (including `openai`) are automatically installed during add-on installation.
 
 ## Configuration
 
@@ -45,7 +50,8 @@ Claude Watchdog is a revolutionary Home Assistant add-on that provides:
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `claude_model` | Claude model to use for analysis | `claude-3-5-haiku-20241022` |
+| `openai_api_key` | Your OpenAI API key | `""` (required) |
+| `openai_model` | OpenAI model to use for analysis | `gpt-4o-mini` |
 | `check_interval` | Seconds between monitoring checks | `30` |
 | `insight_threshold` | Confidence threshold for alerts (0.0-1.0) | `0.8` |
 | `max_daily_api_calls` | Maximum API calls per day | `1000` |
@@ -67,7 +73,8 @@ Select which areas to monitor:
 ### Example Configuration
 
 ```yaml
-claude_model: "claude-3-5-haiku-20241022"
+openai_api_key: "sk-your-openai-api-key-here"
+openai_model: "gpt-4o-mini"
 check_interval: 30
 insight_threshold: 0.8
 max_daily_api_calls: 1000
@@ -80,34 +87,38 @@ notification_service: "notify"
 enable_learning: true
 ```
 
-## Setting Up Anthropic API Credentials
+## Setting Up OpenAI API Credentials
 
-Claude Watchdog requires an Anthropic API key to function:
+OpenAI Watchdog requires an OpenAI API key to function:
 
-1. **Get an Anthropic API Key**: Visit [console.anthropic.com](https://console.anthropic.com/) to create an account and generate an API key
+1. **Get an OpenAI API Key**: Visit [platform.openai.com](https://platform.openai.com/) to create an account and generate an API key
 
-2. **Add to Home Assistant**: Create a file `/config/claude-watchdog/credentials.json` with:
-   ```json
-   {
-     "api_key": "your-anthropic-api-key-here"
-   }
-   ```
-
-3. **Secure the File**: The add-on will automatically secure this file with proper permissions
+2. **Configure in Home Assistant**: 
+   - Go to **Settings** → **Add-ons** → **OpenAI Watchdog**
+   - Click the **Configuration** tab
+   - Enter your OpenAI API key in the `openai_api_key` field
+   - Configure other settings as needed
+   - Click **Save** and restart the add-on
 
 ## Cost Management
 
-Claude Watchdog is designed to be cost-effective:
+OpenAI Watchdog is designed to be cost-effective:
 
 ### Default Limits
 - **Daily Cost Limit**: $1.00 USD per day
 - **Daily API Calls**: 1,000 requests maximum
-- **Model**: Claude 3.5 Haiku (fastest, most cost-effective)
+- **Model**: GPT-4o-mini (fastest, most cost-effective)
+
+### OpenAI Model Pricing (per 1K tokens)
+- **GPT-4o-mini**: $0.15 input / $0.60 output (recommended)
+- **GPT-4o**: $2.50 input / $10.00 output (most capable)
+- **GPT-3.5-turbo**: $0.50 input / $1.50 output (balanced)
 
 ### Estimated Costs
-- **Check Interval**: 30 seconds = 2,880 checks/day
-- **Average Cost**: ~$0.36/day for continuous monitoring
-- **Monthly Cost**: ~$11/month for 24/7 intelligent monitoring
+- **Check Interval**: 30 seconds = 2,880 potential checks/day
+- **Actual Usage**: Smart filtering reduces to ~200-500 API calls/day
+- **Average Cost**: ~$0.20-0.50/day with GPT-4o-mini
+- **Monthly Cost**: ~$6-15/month for intelligent monitoring
 
 ### Cost Tracking
 - Real-time cost tracking with automatic limits
@@ -142,7 +153,7 @@ Motion sensor may need recalibration or battery replacement."
 
 ## Understanding Insights
 
-Claude Watchdog provides different types of insights:
+OpenAI Watchdog provides different types of insights:
 
 ### Insight Types
 - **Security**: Unusual access patterns, motion anomalies
@@ -173,7 +184,7 @@ Configure how you receive insights:
 
 ## Data Storage
 
-Claude Watchdog stores data in `/config/claude-watchdog/`:
+OpenAI Watchdog stores data in `/config/openai-watchdog/`:
 
 - `insights/`: Analysis results and recommendations
 - `patterns/`: Learned behavior patterns (future feature)
@@ -184,10 +195,12 @@ Claude Watchdog stores data in `/config/claude-watchdog/`:
 
 ### Common Issues
 
-1. **High API Costs**: Adjust `check_interval` or `cost_limit_daily`
-2. **Too Many Alerts**: Increase `insight_threshold` value
-3. **Missing Insights**: Lower `insight_threshold` or check monitoring scope
-4. **API Errors**: Verify Anthropic API key and account status
+1. **High API Costs**: Adjust `check_interval` or `cost_limit_daily` in add-on configuration
+2. **Too Many Alerts**: Increase `insight_threshold` value in add-on configuration
+3. **Missing Insights**: Lower `insight_threshold` or check monitoring scope in configuration
+4. **API Errors**: Verify OpenAI API key is correctly entered in add-on configuration
+5. **No Analysis**: Ensure `openai_api_key` is set in the add-on configuration UI
+6. **Configuration Issues**: Check add-on logs for configuration validation errors
 
 ### Logs
 
@@ -197,18 +210,34 @@ View add-on logs for detailed information:
 - Analysis results and insights
 - Error messages and debugging info
 
+## Technical Implementation
+
+### API Integration
+- **AsyncOpenAI Client**: Full async/await support for non-blocking operations
+- **Structured Prompts**: JSON-formatted responses for consistent parsing
+- **Cost Tracking**: Real-time token usage and cost calculation
+- **Error Handling**: Automatic fallback to mock analysis on API failures
+- **Rate Limiting**: Built-in daily cost and request limits
+
+### Smart Analysis
+- **Context Awareness**: Analyzes patterns across multiple state changes
+- **Confidence Scoring**: Only alerts on high-confidence insights (>0.8)
+- **Domain-Specific**: Tailored analysis for climate, security, energy, etc.
+- **Learning Ready**: Architecture supports future pattern learning features
+
 ## Privacy and Security
 
-- **Local Processing**: Only state changes are sent to Claude API
+- **Local Processing**: Only state changes are sent to OpenAI API
 - **No Personal Data**: Entity IDs and states only, no personal information
-- **Secure Storage**: Credentials and data stored with restricted permissions
+- **Secure Configuration**: API keys handled securely through Home Assistant configuration UI
 - **Configurable Scope**: Monitor only the domains you choose
+- **Data Isolation**: Monitoring data stored in dedicated add-on directory
 
 ## Support
 
 - [Documentation](https://github.com/evandepol/hassio-addons)
 - [Issue Tracker](https://github.com/evandepol/hassio-addons/issues)  
-- [Anthropic Claude Documentation](https://docs.anthropic.com/)
+- [OpenAI API Documentation](https://platform.openai.com/docs/)
 
 ## Credits
 
