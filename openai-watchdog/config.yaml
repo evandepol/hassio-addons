@@ -20,6 +20,7 @@ panel_admin: true
 
 # Add-on configuration options
 options:
+  openai_api_key: ""
   openai_model: "gpt-4o-mini"
   check_interval: 30
   insight_threshold: 0.8
@@ -33,6 +34,7 @@ options:
   cost_limit_daily: 1.00
 
 schema:
+  openai_api_key: "password"
   openai_model: "list(gpt-4o-mini|gpt-4o|gpt-3.5-turbo)?"
   check_interval: "int(10,300)?"
   insight_threshold: "float(0.5,1.0)?"

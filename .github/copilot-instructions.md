@@ -138,16 +138,22 @@ mkdir -p /config/addon-name/{data,cache,logs}
 
 **AI Add-on Security Patterns:**
 ```bash
-# API credential storage with secure permissions
-mkdir -p /config/addon-name
-chmod 700 /config/addon-name
-# Credential file should be created by user, validated by add-on
+# API credential via Home Assistant configuration (preferred method)
+local openai_api_key=$(bashio::config 'openai_api_key' '')
+export OPENAI_API_KEY="$openai_api_key"
 
 # Cost tracking data structure
 mkdir -p /config/addon-name/{insights,patterns,costs,logs}
 
-# Environment variable handling
-export OPENAI_API_KEY="$(cat /config/addon-name/credentials.json | jq -r '.api_key')"
+# Fallback credential file handling (legacy support)
+if [ -z "$openai_api_key" ] && [ -f "/config/addon-name/credentials.json" ]; then
+    export OPENAI_API_KEY="$(cat /config/addon-name/credentials.json | jq -r '.api_key')"
+fi
+
+# Configuration validation
+if [ -z "$OPENAI_API_KEY" ]; then
+    bashio::log.warning "No API key configured - running in mock mode"
+fi
 ```
 
 **Environment Detection (standalone vs supervised):**
@@ -222,8 +228,7 @@ tail -f /config/addon-name/costs/daily_costs.json
 - Event-driven scripts with UPS state monitoring
 - Auto-discovery integration with Home Assistant's native apcupsd platform
 
-**AI Add-on Patterns (claude-home, claude-watchdog, openai-watchdog):**
-- **Credential Management**: Store API keys in `/config/addon-name/credentials.json`
+**AI Add-on Patterns (claude-home, claude-watchdog, openai-watchdog):**\n- **Credential Management**: API keys via Home Assistant configuration UI (preferred) or `/config/addon-name/credentials.json` (fallback)
 - **Cost Tracking**: Implement daily limits with `cost_tracker.py` pattern
 - **Environment Detection**: Support both supervised and standalone modes
 - **Async Architecture**: Use asyncio for non-blocking API calls

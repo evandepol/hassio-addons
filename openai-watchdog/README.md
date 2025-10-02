@@ -47,6 +47,7 @@ OpenAI Watchdog is a revolutionary Home Assistant add-on that provides:
 
 | Option | Description | Default |
 |--------|-------------|---------|
+| `openai_api_key` | Your OpenAI API key | `""` (required) |
 | `openai_model` | OpenAI model to use for analysis | `gpt-4o-mini` |
 | `check_interval` | Seconds between monitoring checks | `30` |
 | `insight_threshold` | Confidence threshold for alerts (0.0-1.0) | `0.8` |
@@ -69,6 +70,7 @@ Select which areas to monitor:
 ### Example Configuration
 
 ```yaml
+openai_api_key: "sk-your-openai-api-key-here"
 openai_model: "gpt-4o-mini"
 check_interval: 30
 insight_threshold: 0.8
@@ -88,14 +90,20 @@ OpenAI Watchdog requires an OpenAI API key to function:
 
 1. **Get an OpenAI API Key**: Visit [platform.openai.com](https://platform.openai.com/) to create an account and generate an API key
 
-2. **Add to Home Assistant**: Create a file `/config/openai-watchdog/credentials.json` with:
+2. **Configure in Home Assistant**: 
+   - Go to **Settings** → **Add-ons** → **OpenAI Watchdog**
+   - Click the **Configuration** tab
+   - Enter your OpenAI API key in the `openai_api_key` field
+   - Configure other settings as needed
+   - Click **Save** and restart the add-on
+
+3. **Alternative Method**: If you prefer, you can still create a credentials file at `/config/openai-watchdog/credentials.json`:
    ```json
    {
      "api_key": "your-openai-api-key-here"
    }
    ```
-
-3. **Secure the File**: The add-on will automatically secure this file with proper permissions
+   Note: The configuration UI method takes priority over the credentials file.
 
 ## Cost Management
 
@@ -192,11 +200,12 @@ OpenAI Watchdog stores data in `/config/openai-watchdog/`:
 
 ### Common Issues
 
-1. **High API Costs**: Adjust `check_interval` or `cost_limit_daily`
-2. **Too Many Alerts**: Increase `insight_threshold` value
-3. **Missing Insights**: Lower `insight_threshold` or check monitoring scope
-4. **API Errors**: Verify OpenAI API key and account status
-5. **No Analysis**: Check OpenAI API key in `/config/openai-watchdog/credentials.json`
+1. **High API Costs**: Adjust `check_interval` or `cost_limit_daily` in add-on configuration
+2. **Too Many Alerts**: Increase `insight_threshold` value in add-on configuration
+3. **Missing Insights**: Lower `insight_threshold` or check monitoring scope in configuration
+4. **API Errors**: Verify OpenAI API key is correctly entered in add-on configuration
+5. **No Analysis**: Ensure `openai_api_key` is set in the add-on configuration UI
+6. **Configuration Issues**: Check add-on logs for configuration validation errors
 
 ### Logs
 

@@ -14,6 +14,7 @@ init_environment() {
     export HOME="/root"
     
     # Read configuration from Home Assistant
+    local openai_api_key=$(bashio::config 'openai_api_key' '')
     local openai_model=$(bashio::config 'openai_model' 'gpt-4o-mini')
     local check_interval=$(bashio::config 'check_interval' '30')
     local insight_threshold=$(bashio::config 'insight_threshold' '0.8')
@@ -22,6 +23,7 @@ init_environment() {
     local enable_learning=$(bashio::config 'enable_learning' 'true')
     
     # Export configuration as environment variables
+    export OPENAI_API_KEY="$openai_api_key"
     export OPENAI_MODEL="$openai_model"
     export WATCHDOG_CHECK_INTERVAL="$check_interval"
     export WATCHDOG_INSIGHT_THRESHOLD="$insight_threshold"
@@ -36,6 +38,15 @@ init_environment() {
     # Notification service
     local notification_service=$(bashio::config 'notification_service' 'persistent_notification')
     export WATCHDOG_NOTIFICATION_SERVICE="$notification_service"
+    
+    # Validate API key configuration
+    if [ -z "$openai_api_key" ]; then
+        bashio::log.warning "⚠️  No OpenAI API key configured in add-on settings"
+        bashio::log.warning "Please configure 'openai_api_key' in the add-on configuration"
+        bashio::log.warning "Add-on will run in mock analysis mode without API key"
+    else
+        bashio::log.info "✅ OpenAI API key configured"
+    fi
     
     bashio::log.info "OpenAI Watchdog configured with model: $openai_model"
     bashio::log.info "Check interval: ${check_interval}s, Cost limit: \$${cost_limit}/day"
