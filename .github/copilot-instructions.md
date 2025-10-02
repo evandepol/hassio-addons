@@ -136,6 +136,20 @@ chmod 700 /config/addon-name
 mkdir -p /config/addon-name/{data,cache,logs}
 ```
 
+**AI Add-on Security Patterns:**
+```bash
+# API credential storage with secure permissions
+mkdir -p /config/addon-name
+chmod 700 /config/addon-name
+# Credential file should be created by user, validated by add-on
+
+# Cost tracking data structure
+mkdir -p /config/addon-name/{insights,patterns,costs,logs}
+
+# Environment variable handling
+export OPENAI_API_KEY="$(cat /config/addon-name/credentials.json | jq -r '.api_key')"
+```
+
 **Environment Detection (standalone vs supervised):**
 ```bash
 if [ -n "$SUPERVISOR_TOKEN" ]; then
@@ -163,6 +177,20 @@ hadolint ./addon-name/Dockerfile
 curl -X GET http://localhost:PORT/
 ```
 
+**AI Add-on Testing Patterns:**
+```bash
+# Test with mock analysis (no API costs)
+# Set environment to disable real API calls during development
+export OPENAI_API_KEY=""  # Empty key triggers mock mode
+
+# Cost tracking testing
+# Monitor cost files during development
+tail -f /config/addon-name/costs/daily_costs.json
+
+# Integration testing with Home Assistant
+# Use bashio::api.supervisor for HA state access in development
+```
+
 **CI/CD via GitHub Actions:**
 - Multi-architecture builds (amd64, arm64) using Docker Buildx
 - Container registry: `ghcr.io/cabinlab/addon-name`
@@ -178,15 +206,30 @@ curl -X GET http://localhost:PORT/
 
 **OpenAI Watchdog (fork development):**
 - Based on `claude-watchdog/` but uses OpenAI GPT models instead of Claude
-- Configuration uses `openai_model` (gpt-4o-mini, gpt-4o, gpt-3.5-turbo) instead of `claude_model`
-- Environment variables use `OPENAI_MODEL` instead of `ANTHROPIC_MODEL`
-- Uses `openai` Python package instead of `anthropic`
-- Directory structure uses `/config/openai-watchdog` instead of `/config/claude-watchdog`
+- **API Integration**: Uses `AsyncOpenAI` client with proper async/await patterns
+- **Model Support**: `gpt-4o-mini` (default), `gpt-4o`, `gpt-3.5-turbo`
+- **Configuration**: Uses `openai_model` instead of `claude_model`
+- **Environment Variables**: `OPENAI_MODEL`, `OPENAI_WATCHDOG_DATA`
+- **Dependencies**: `openai` Python package instead of `anthropic`
+- **Directory Structure**: `/config/openai-watchdog/` with subdirs for insights, costs, logs
+- **Cost Tracking**: Real-time token usage and cost calculation with OpenAI pricing
+- **API Key Management**: Supports environment variables or `/config/openai-watchdog/credentials.json`
+- **Structured Analysis**: JSON-formatted prompts and responses for consistent parsing
+- **Error Handling**: Automatic fallback to mock analysis on API failures
 
 **APC UPS specific patterns:**
 - Native host control through Supervisor APIs (`hassio_poweroff`, `hassio_reboot`)  
 - Event-driven scripts with UPS state monitoring
 - Auto-discovery integration with Home Assistant's native apcupsd platform
+
+**AI Add-on Patterns (claude-home, claude-watchdog, openai-watchdog):**
+- **Credential Management**: Store API keys in `/config/addon-name/credentials.json`
+- **Cost Tracking**: Implement daily limits with `cost_tracker.py` pattern
+- **Environment Detection**: Support both supervised and standalone modes
+- **Async Architecture**: Use asyncio for non-blocking API calls
+- **Structured Prompts**: JSON-formatted requests for consistent AI responses
+- **Mock Fallbacks**: Development/testing modes without API costs
+- **Configuration Schema**: Model selection, thresholds, monitoring scope options
 
 **Cross-add-on Communication:**
 - Shared `/config` directory for inter-add-on data exchange

@@ -20,9 +20,11 @@ OpenAI Watchdog is a revolutionary Home Assistant add-on that provides:
 - **Real-time State Analysis**: Monitors entity state changes across your Home Assistant system
 - **Multi-Domain Monitoring**: Climate, security, energy, automation performance, and device health
 - **Cost-Controlled**: Built-in cost tracking with daily limits to prevent unexpected charges
-- **Learning Patterns**: Adapts to your home's normal behavior patterns over time
+- **Smart Analysis**: Uses OpenAI GPT models for intelligent pattern recognition
+- **Structured Insights**: JSON-formatted analysis with confidence levels and recommended actions
 - **Smart Notifications**: Configurable alerts via Home Assistant notification services
 - **Comprehensive Logging**: Detailed insights and analysis history
+- **Development Mode**: Mock analysis for testing without API costs
 
 ## Installation
 
@@ -104,10 +106,16 @@ OpenAI Watchdog is designed to be cost-effective:
 - **Daily API Calls**: 1,000 requests maximum
 - **Model**: GPT-4o-mini (fastest, most cost-effective)
 
+### OpenAI Model Pricing (per 1K tokens)
+- **GPT-4o-mini**: $0.15 input / $0.60 output (recommended)
+- **GPT-4o**: $2.50 input / $10.00 output (most capable)
+- **GPT-3.5-turbo**: $0.50 input / $1.50 output (balanced)
+
 ### Estimated Costs
-- **Check Interval**: 30 seconds = 2,880 checks/day
-- **Average Cost**: ~$0.36/day for continuous monitoring
-- **Monthly Cost**: ~$11/month for 24/7 intelligent monitoring
+- **Check Interval**: 30 seconds = 2,880 potential checks/day
+- **Actual Usage**: Smart filtering reduces to ~200-500 API calls/day
+- **Average Cost**: ~$0.20-0.50/day with GPT-4o-mini
+- **Monthly Cost**: ~$6-15/month for intelligent monitoring
 
 ### Cost Tracking
 - Real-time cost tracking with automatic limits
@@ -187,7 +195,8 @@ OpenAI Watchdog stores data in `/config/openai-watchdog/`:
 1. **High API Costs**: Adjust `check_interval` or `cost_limit_daily`
 2. **Too Many Alerts**: Increase `insight_threshold` value
 3. **Missing Insights**: Lower `insight_threshold` or check monitoring scope
-4. **API Errors**: Verify Anthropic API key and account status
+4. **API Errors**: Verify OpenAI API key and account status
+5. **No Analysis**: Check OpenAI API key in `/config/openai-watchdog/credentials.json`
 
 ### Logs
 
@@ -197,12 +206,28 @@ View add-on logs for detailed information:
 - Analysis results and insights
 - Error messages and debugging info
 
+## Technical Implementation
+
+### API Integration
+- **AsyncOpenAI Client**: Full async/await support for non-blocking operations
+- **Structured Prompts**: JSON-formatted responses for consistent parsing
+- **Cost Tracking**: Real-time token usage and cost calculation
+- **Error Handling**: Automatic fallback to mock analysis on API failures
+- **Rate Limiting**: Built-in daily cost and request limits
+
+### Smart Analysis
+- **Context Awareness**: Analyzes patterns across multiple state changes
+- **Confidence Scoring**: Only alerts on high-confidence insights (>0.8)
+- **Domain-Specific**: Tailored analysis for climate, security, energy, etc.
+- **Learning Ready**: Architecture supports future pattern learning features
+
 ## Privacy and Security
 
 - **Local Processing**: Only state changes are sent to OpenAI API
 - **No Personal Data**: Entity IDs and states only, no personal information
 - **Secure Storage**: Credentials and data stored with restricted permissions
 - **Configurable Scope**: Monitor only the domains you choose
+- **API Key Security**: Supports both environment variables and encrypted credential files
 
 ## Support
 
