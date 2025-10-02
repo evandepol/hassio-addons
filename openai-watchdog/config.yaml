@@ -1,7 +1,7 @@
-name: "Claude Watchdog"
-description: "Intelligent Home Assistant monitoring with continuous Claude analysis"
+name: "OpenAI Watchdog"
+description: "Intelligent Home Assistant monitoring with continuous OpenAI analysis"
 version: "0.1.0"
-slug: "claude_watchdog"
+slug: "openai_watchdog"
 init: false
 
 # Supported architectures
@@ -15,12 +15,12 @@ url: "https://github.com/cabinlab/hassio-addons"
 # No web interface - runs as background service
 ingress: false
 panel_icon: mdi:shield-search
-panel_title: "Claude Watchdog"
+panel_title: "OpenAI Watchdog"
 panel_admin: true
 
 # Add-on configuration options
 options:
-  claude_model: "claude-3-5-haiku-20241022"
+  openai_model: "gpt-4o-mini"
   check_interval: 30
   insight_threshold: 0.8
   max_daily_api_calls: 1000
@@ -33,7 +33,7 @@ options:
   cost_limit_daily: 1.00
 
 schema:
-  claude_model: "list(claude-3-5-haiku-20241022|claude-3-5-sonnet-20241022|claude-3-haiku-20240307)?"
+  openai_model: "list(gpt-4o-mini|gpt-4o|gpt-3.5-turbo)?"
   check_interval: "int(10,300)?"
   insight_threshold: "float(0.5,1.0)?"
   max_daily_api_calls: "int(100,5000)?"
@@ -44,7 +44,7 @@ schema:
 
 # Volume mapping for persistent storage
 map:
-  - config:rw    # Claude configuration and monitoring data
+  - config:rw    # OpenAI configuration and monitoring data
 
 # Service startup configuration
 startup: services

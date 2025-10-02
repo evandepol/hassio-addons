@@ -3,18 +3,18 @@
 # Initialize monitoring environment
 init_environment() {
     # Ensure monitoring data directory exists with proper permissions
-    mkdir -p /config/claude-watchdog
-    chmod 700 /config/claude-watchdog
+    mkdir -p /config/openai-watchdog
+    chmod 700 /config/openai-watchdog
     
     # Create subdirectories for different data types
-    mkdir -p /config/claude-watchdog/{insights,patterns,costs,logs}
+    mkdir -p /config/openai-watchdog/{insights,patterns,costs,logs}
     
     # Set environment variables
-    export CLAUDE_WATCHDOG_DATA="/config/claude-watchdog"
+    export OPENAI_WATCHDOG_DATA="/config/openai-watchdog"
     export HOME="/root"
     
     # Read configuration from Home Assistant
-    local claude_model=$(bashio::config 'claude_model' 'claude-3-5-haiku-20241022')
+    local openai_model=$(bashio::config 'openai_model' 'gpt-4o-mini')
     local check_interval=$(bashio::config 'check_interval' '30')
     local insight_threshold=$(bashio::config 'insight_threshold' '0.8')
     local max_daily_calls=$(bashio::config 'max_daily_api_calls' '1000')
@@ -22,7 +22,7 @@ init_environment() {
     local enable_learning=$(bashio::config 'enable_learning' 'true')
     
     # Export configuration as environment variables
-    export ANTHROPIC_MODEL="$claude_model"
+    export OPENAI_MODEL="$openai_model"
     export WATCHDOG_CHECK_INTERVAL="$check_interval"
     export WATCHDOG_INSIGHT_THRESHOLD="$insight_threshold"
     export WATCHDOG_MAX_DAILY_CALLS="$max_daily_calls"
@@ -37,7 +37,7 @@ init_environment() {
     local notification_service=$(bashio::config 'notification_service' 'persistent_notification')
     export WATCHDOG_NOTIFICATION_SERVICE="$notification_service"
     
-    bashio::log.info "Claude Watchdog configured with model: $claude_model"
+    bashio::log.info "OpenAI Watchdog configured with model: $openai_model"
     bashio::log.info "Check interval: ${check_interval}s, Cost limit: \$${cost_limit}/day"
 }
 
@@ -60,11 +60,11 @@ setup_ha_access() {
 
 # Start the monitoring service
 start_monitoring_service() {
-    bashio::log.info "Starting Claude Watchdog monitoring service..."
+    bashio::log.info "Starting OpenAI Watchdog monitoring service..."
     
     # Log environment information for debugging
     bashio::log.info "Environment variables:"
-    bashio::log.info "ANTHROPIC_MODEL=${ANTHROPIC_MODEL}"
+    bashio::log.info "OPENAI_MODEL=${OPENAI_MODEL}"
     bashio::log.info "WATCHDOG_CHECK_INTERVAL=${WATCHDOG_CHECK_INTERVAL}"
     bashio::log.info "WATCHDOG_COST_LIMIT=${WATCHDOG_COST_LIMIT}"
     
@@ -75,7 +75,7 @@ start_monitoring_service() {
 
 # Main execution
 main() {
-    bashio::log.info "Initializing Claude Watchdog add-on..."
+    bashio::log.info "Initializing OpenAI Watchdog add-on..."
     
     init_environment
     setup_ha_access

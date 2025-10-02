@@ -1,5 +1,5 @@
 """
-Claude analysis engine for interpreting Home Assistant state changes
+OpenAI analysis engine for interpreting Home Assistant state changes
 """
 
 import logging
@@ -8,13 +8,13 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-class ClaudeAnalyzer:
-    """Claude-powered analysis engine for Home Assistant monitoring"""
+class OpenAIAnalyzer:
+    """OpenAI-powered analysis engine for Home Assistant monitoring"""
     
-    def __init__(self, model: str = "claude-3-5-haiku-20241022", insight_threshold: float = 0.8):
+    def __init__(self, model: str = "gpt-4o-mini", insight_threshold: float = 0.8):
         self.model = model
         self.insight_threshold = insight_threshold
-        self.client = None  # Will be initialized with actual Anthropic client
+        self.client = None  # Will be initialized with actual OpenAI client
         
         # Analysis templates for different monitoring types
         self.analysis_templates = {
@@ -35,9 +35,9 @@ class ClaudeAnalyzer:
             # Build analysis prompt based on scope and changes
             prompt = self._build_analysis_prompt(changes, context, monitoring_scope)
             
-            # TODO: Replace with actual Anthropic client call
+            # TODO: Replace with actual OpenAI client call
             # For now, return mock analysis
-            analysis_result = await self._mock_claude_analysis(prompt, changes)
+            analysis_result = await self._mock_openai_analysis(prompt, changes)
             
             # Process and structure the response
             structured_result = self._structure_analysis(analysis_result, changes)
@@ -98,9 +98,9 @@ Be concise but thorough. Only flag for attention if confidence > {self.insight_t
         
         return prompt
     
-    async def _mock_claude_analysis(self, prompt: str, changes: List[Dict]) -> str:
-        """Mock Claude analysis for development/testing"""
-        # TODO: Replace with actual Anthropic API call
+    async def _mock_openai_analysis(self, prompt: str, changes: List[Dict]) -> str:
+        """Mock OpenAI analysis for development/testing"""
+        # TODO: Replace with actual OpenAI API call
         
         # Simple mock analysis based on change patterns
         analysis = "Analysis Status: Normal\n"

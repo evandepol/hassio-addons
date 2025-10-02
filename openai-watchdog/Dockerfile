@@ -11,14 +11,14 @@ RUN apk add --no-cache \
     curl \
     jq \
     && pip3 install --no-cache-dir \
-        anthropic \
+        openai \
         pyyaml \
         schedule \
         python-dateutil \
     && pip3 cache purge
 
 # Create directory for monitoring data
-RUN mkdir -p /config/claude-watchdog
+RUN mkdir -p /config/openai-watchdog
 WORKDIR /config
 
 # Copy application files

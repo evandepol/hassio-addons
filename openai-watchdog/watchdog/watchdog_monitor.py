@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 class WatchdogMonitor:
     """Main monitoring service that coordinates all watchdog activities"""
     
-    def __init__(self, ha_client, claude_analyzer, cost_tracker, insight_manager, config):
+    def __init__(self, ha_client, openai_analyzer, cost_tracker, insight_manager, config):
         self.ha_client = ha_client
-        self.claude_analyzer = claude_analyzer
+        self.openai_analyzer = openai_analyzer
         self.cost_tracker = cost_tracker
         self.insight_manager = insight_manager
         self.config = config
@@ -69,8 +69,8 @@ class WatchdogMonitor:
         # Add changes to state buffer
         self.state_buffer.add_changes(changes)
         
-        # Analyze changes with Claude
-        analysis = await self.claude_analyzer.analyze_changes(
+        # Analyze changes with OpenAI
+        analysis = await self.openai_analyzer.analyze_changes(
             changes=changes,
             context=self.state_buffer.get_context(),
             monitoring_scope=self.config['monitoring_scope']

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Claude Watchdog - Intelligent Home Assistant Monitoring
+OpenAI Watchdog - Intelligent Home Assistant Monitoring
 Main monitoring service that runs continuously
 """
 
@@ -14,7 +14,7 @@ from typing import Dict, List, Any
 
 from watchdog_monitor import WatchdogMonitor
 from ha_client import HomeAssistantClient
-from claude_analyzer import ClaudeAnalyzer
+from openai_analyzer import OpenAIAnalyzer
 from cost_tracker import CostTracker
 from insight_manager import InsightManager
 
@@ -36,7 +36,7 @@ class ClaudeWatchdogService:
         self.running = False
         self.monitor = None
         self.ha_client = None
-        self.claude_analyzer = None
+        self.openai_analyzer = None
         self.cost_tracker = None
         self.insight_manager = None
         
@@ -46,7 +46,7 @@ class ClaudeWatchdogService:
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from environment variables"""
         return {
-            'model': os.getenv('ANTHROPIC_MODEL', 'claude-3-5-haiku-20241022'),
+            'model': os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
             'check_interval': int(os.getenv('WATCHDOG_CHECK_INTERVAL', '30')),
             'insight_threshold': float(os.getenv('WATCHDOG_INSIGHT_THRESHOLD', '0.8')),
             'max_daily_calls': int(os.getenv('WATCHDOG_MAX_DAILY_CALLS', '1000')),
@@ -54,7 +54,7 @@ class ClaudeWatchdogService:
             'enable_learning': os.getenv('WATCHDOG_ENABLE_LEARNING', 'true').lower() == 'true',
             'monitoring_scope': self._parse_monitoring_scope(),
             'notification_service': os.getenv('WATCHDOG_NOTIFICATION_SERVICE', 'persistent_notification'),
-            'data_dir': os.getenv('CLAUDE_WATCHDOG_DATA', '/config/claude-watchdog'),
+            'data_dir': os.getenv('OPENAI_WATCHDOG_DATA', '/config/openai-watchdog'),
             'ha_url': os.getenv('HA_URL', 'http://supervisor/core'),
             'ha_token': os.getenv('HASSIO_TOKEN', '')
         }
@@ -70,7 +70,7 @@ class ClaudeWatchdogService:
     
     async def initialize(self):
         """Initialize all service components"""
-        logger.info("Initializing Claude Watchdog components...")
+        logger.info("Initializing OpenAI Watchdog components...")
         
         try:
             # Initialize Home Assistant client
@@ -79,8 +79,8 @@ class ClaudeWatchdogService:
                 token=self.config['ha_token']
             )
             
-            # Initialize Claude analyzer
-            self.claude_analyzer = ClaudeAnalyzer(
+            # Initialize OpenAI analyzer
+            self.openai_analyzer = OpenAIAnalyzer(
                 model=self.config['model'],
                 insight_threshold=self.config['insight_threshold']
             )
@@ -102,7 +102,7 @@ class ClaudeWatchdogService:
             # Initialize main monitor
             self.monitor = WatchdogMonitor(
                 ha_client=self.ha_client,
-                claude_analyzer=self.claude_analyzer,
+                openai_analyzer=self.openai_analyzer,
                 cost_tracker=self.cost_tracker,
                 insight_manager=self.insight_manager,
                 config=self.config
@@ -116,7 +116,7 @@ class ClaudeWatchdogService:
     
     async def start(self):
         """Start the monitoring service"""
-        logger.info("Starting Claude Watchdog monitoring service...")
+        logger.info("Starting OpenAI Watchdog monitoring service...")
         
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGTERM, self._signal_handler)
