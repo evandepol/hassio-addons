@@ -62,7 +62,7 @@ jobs:
             
             ## Container Image
             ```bash
-            docker pull ghcr.io/cabinlab/claude-home:${{ github.event.inputs.version }}
+            docker pull ghcr.io/evandepol/claude-home:${{ github.event.inputs.version }}
             ```
             
             ## Home Assistant Add-on

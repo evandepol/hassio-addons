@@ -95,7 +95,7 @@ The modernized add-on had restrictive container security that prevented USB devi
 - Improved error handling for Host control operations
 - Better script validation and security checks
 
-## FORK - Integrated into cabinlab/hassio-addons
+## FORK - Integrated into evandepol/hassio-addons
 
 ## [1.9] - 2019-06-02
 ### Updated
