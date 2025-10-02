@@ -41,9 +41,9 @@ init_environment() {
     
     # Validate API key configuration
     if [ -z "$openai_api_key" ]; then
-        bashio::log.warning "⚠️  No OpenAI API key configured in add-on settings"
-        bashio::log.warning "Please configure 'openai_api_key' in the add-on configuration"
-        bashio::log.warning "Add-on will run in mock analysis mode without API key"
+        bashio::log.error "❌ No OpenAI API key configured"
+        bashio::log.error "Please set 'openai_api_key' in the add-on configuration UI"
+        bashio::log.error "Add-on will run in mock analysis mode"
     else
         bashio::log.info "✅ OpenAI API key configured"
     fi

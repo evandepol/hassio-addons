@@ -138,21 +138,17 @@ mkdir -p /config/addon-name/{data,cache,logs}
 
 **AI Add-on Security Patterns:**
 ```bash
-# API credential via Home Assistant configuration (preferred method)
+# API credential via Home Assistant configuration UI
 local openai_api_key=$(bashio::config 'openai_api_key' '')
 export OPENAI_API_KEY="$openai_api_key"
 
 # Cost tracking data structure
 mkdir -p /config/addon-name/{insights,patterns,costs,logs}
 
-# Fallback credential file handling (legacy support)
-if [ -z "$openai_api_key" ] && [ -f "/config/addon-name/credentials.json" ]; then
-    export OPENAI_API_KEY="$(cat /config/addon-name/credentials.json | jq -r '.api_key')"
-fi
-
 # Configuration validation
 if [ -z "$OPENAI_API_KEY" ]; then
-    bashio::log.warning "No API key configured - running in mock mode"
+    bashio::log.error "No API key configured in add-on settings"
+    bashio::log.error "Please set 'openai_api_key' in configuration UI"
 fi
 ```
 
@@ -186,8 +182,7 @@ curl -X GET http://localhost:PORT/
 **AI Add-on Testing Patterns:**
 ```bash
 # Test with mock analysis (no API costs)
-# Set environment to disable real API calls during development
-export OPENAI_API_KEY=""  # Empty key triggers mock mode
+# Leave openai_api_key empty in add-on configuration to trigger mock mode
 
 # Cost tracking testing
 # Monitor cost files during development
@@ -240,6 +235,14 @@ tail -f /config/addon-name/costs/daily_costs.json
 - Shared `/config` directory for inter-add-on data exchange
 - Standard logging patterns for centralized monitoring
 - Common credential storage patterns in `/config/addon-name`
+
+## Configuration Design Principles
+
+**Single Configuration Method Rule:**
+- Use **only** Home Assistant add-on configuration UI for user settings
+- Avoid multiple ways to configure the same setting (no fallbacks or alternatives)
+- This reduces complexity, improves troubleshooting, and matches Home Assistant conventions
+- Configuration schema should use appropriate types: `password` for API keys, `list()` for selections
 
 ## Repository Conventions
 

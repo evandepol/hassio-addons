@@ -97,14 +97,6 @@ OpenAI Watchdog requires an OpenAI API key to function:
    - Configure other settings as needed
    - Click **Save** and restart the add-on
 
-3. **Alternative Method**: If you prefer, you can still create a credentials file at `/config/openai-watchdog/credentials.json`:
-   ```json
-   {
-     "api_key": "your-openai-api-key-here"
-   }
-   ```
-   Note: The configuration UI method takes priority over the credentials file.
-
 ## Cost Management
 
 OpenAI Watchdog is designed to be cost-effective:
@@ -234,9 +226,9 @@ View add-on logs for detailed information:
 
 - **Local Processing**: Only state changes are sent to OpenAI API
 - **No Personal Data**: Entity IDs and states only, no personal information
-- **Secure Storage**: Credentials and data stored with restricted permissions
+- **Secure Configuration**: API keys handled securely through Home Assistant configuration UI
 - **Configurable Scope**: Monitor only the domains you choose
-- **API Key Security**: Supports both environment variables and encrypted credential files
+- **Data Isolation**: Monitoring data stored in dedicated add-on directory
 
 ## Support
 

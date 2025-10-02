@@ -60,23 +60,12 @@ class OpenAIAnalyzer:
             logger.error(f"Failed to initialize OpenAI client: {e}")
     
     def _get_api_key(self) -> Optional[str]:
-        """Get OpenAI API key from environment or credentials file"""
-        # Try environment variable first
+        """Get OpenAI API key from environment variable (set by Home Assistant configuration)"""
         api_key = os.getenv('OPENAI_API_KEY')
-        if api_key:
-            return api_key
-            
-        # Try credentials file
-        credentials_path = '/config/openai-watchdog/credentials.json'
-        try:
-            if os.path.exists(credentials_path):
-                with open(credentials_path, 'r') as f:
-                    creds = json.load(f)
-                    return creds.get('api_key')
-        except Exception as e:
-            logger.error(f"Error reading credentials file: {e}")
-            
-        return None
+        if not api_key:
+            logger.warning("No OpenAI API key found in configuration")
+            logger.warning("Please set 'openai_api_key' in the Home Assistant add-on configuration")
+        return api_key
     
     async def analyze_changes(self, changes: List[Dict], context: Dict, monitoring_scope: List[str]) -> Dict[str, Any]:
         """Analyze state changes and return insights"""
