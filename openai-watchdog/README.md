@@ -1,6 +1,6 @@
 # OpenAI Watchdog for Home Assistant
 
-[![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=openai_watchdog&repository_url=https%3A%2F%2Fgithub.com%2Fcabinlab%2Fhassio-addons)
+[![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=openai_watchdog&repository_url=https%3A%2F%2Fgithub.com%2Fevandepol%2Fhassio-addons)
 
 Intelligent continuous monitoring for Home Assistant using OpenAI. OpenAI Watchdog runs in the background, analyzing your system state changes and providing proactive insights, security monitoring, and optimization recommendations.
 
@@ -28,18 +28,21 @@ OpenAI Watchdog is a revolutionary Home Assistant add-on that provides:
 
 ## Installation
 
+📋 **For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md)**
+
 ### Quick Install
-[![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=openai_watchdog&repository_url=https%3A%2F%2Fgithub.com%2Fcabinlab%2Fhassio-addons)
+[![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=openai_watchdog&repository_url=https%3A%2F%2Fgithub.com%2Fevandepol%2Fhassio-addons)
 
 ### Manual Installation
 1. Add this repository to your Home Assistant add-on store:
 
-   [![Open your Home Assistant instance and show the add add-on repository dialog with this repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fcabinlab%2Fhassio-addons)
+   [![Open your Home Assistant instance and show the add add-on repository dialog with this repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fevandepol%2Fhassio-addons)
 
 2. Install the "OpenAI Watchdog" add-on
-3. Configure your monitoring preferences (see configuration section below)
+3. Configure your OpenAI API key in the add-on configuration
 4. Start the add-on
-5. Configure your OpenAI API credentials (see credentials section)
+
+**Dependencies**: All required packages (including `openai`) are automatically installed during add-on installation.
 
 ## Configuration
 
@@ -232,8 +235,8 @@ View add-on logs for detailed information:
 
 ## Support
 
-- [Documentation](https://github.com/cabinlab/hassio-addons)
-- [Issue Tracker](https://github.com/cabinlab/hassio-addons/issues)  
+- [Documentation](https://github.com/evandepol/hassio-addons)
+- [Issue Tracker](https://github.com/evandepol/hassio-addons/issues)  
 - [OpenAI API Documentation](https://platform.openai.com/docs/)
 
 ## Credits

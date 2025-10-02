@@ -194,7 +194,7 @@ tail -f /config/addon-name/costs/daily_costs.json
 
 **CI/CD via GitHub Actions:**
 - Multi-architecture builds (amd64, arm64) using Docker Buildx
-- Container registry: `ghcr.io/cabinlab/addon-name`
+- Container registry: `ghcr.io/evandepol/addon-name`
 - Automated builds on file changes in add-on directories
 - See `.github/workflows/build-*.yml` for patterns
 

@@ -1,6 +1,6 @@
 # Claude Watchdog for Home Assistant
 
-[![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=claude_watchdog&repository_url=https%3A%2F%2Fgithub.com%2Fcabinlab%2Fhassio-addons)
+[![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=claude_watchdog&repository_url=https%3A%2F%2Fgithub.com%2Fevandepol%2Fhassio-addons)
 
 Intelligent continuous monitoring for Home Assistant using Claude AI. Claude Watchdog runs in the background, analyzing your system state changes and providing proactive insights, security monitoring, and optimization recommendations.
 
@@ -27,12 +27,12 @@ Claude Watchdog is a revolutionary Home Assistant add-on that provides:
 ## Installation
 
 ### Quick Install
-[![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=claude_watchdog&repository_url=https%3A%2F%2Fgithub.com%2Fcabinlab%2Fhassio-addons)
+[![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=claude_watchdog&repository_url=https%3A%2F%2Fgithub.com%2Fevandepol%2Fhassio-addons)
 
 ### Manual Installation
 1. Add this repository to your Home Assistant add-on store:
 
-   [![Open your Home Assistant instance and show the add add-on repository dialog with this repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fcabinlab%2Fhassio-addons)
+   [![Open your Home Assistant instance and show the add add-on repository dialog with this repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fevandepol%2Fhassio-addons)
 
 2. Install the "Claude Watchdog" add-on
 3. Configure your monitoring preferences (see configuration section below)
@@ -206,8 +206,8 @@ View add-on logs for detailed information:
 
 ## Support
 
-- [Documentation](https://github.com/cabinlab/hassio-addons)
-- [Issue Tracker](https://github.com/cabinlab/hassio-addons/issues)  
+- [Documentation](https://github.com/evandepol/hassio-addons)
+- [Issue Tracker](https://github.com/evandepol/hassio-addons/issues)  
 - [Anthropic Claude Documentation](https://docs.anthropic.com/)
 
 ## Credits

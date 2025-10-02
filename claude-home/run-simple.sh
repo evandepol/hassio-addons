@@ -490,7 +490,7 @@ echo "   • Your conversations and settings are preserved"
 echo "   • This is a Claude Code limitation, not an add-on bug"
 echo ""
 
-echo "For detailed help, see: https://github.com/cabinlab/hassio-addons/tree/main/claude-home"
+echo "For detailed help, see: https://github.com/evandepol/hassio-addons/tree/main/claude-home"
 EOF
 
 chmod +x /usr/local/bin/claude-troubleshoot

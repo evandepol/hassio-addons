@@ -64,7 +64,7 @@ This is a Home Assistant add-ons repository containing multiple add-ons that fol
 - Support multiple architectures: aarch64, amd64, armhf, armv7, i386
 - Use Home Assistant base images via BUILD_FROM arg in `build.yaml`
 - Map only necessary directories and use appropriate permissions (rw/ro)
-- Repository URL: `https://github.com/cabinlab/hassio-addons`
+- Repository URL: `https://github.com/evandepol/hassio-addons`
 
 ## Add-on Development Workflow
 

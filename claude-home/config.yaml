@@ -10,7 +10,7 @@ arch:
   - amd64
 
 # External resources
-url: "https://github.com/cabinlab/hassio-addons/tree/main/claude-home"
+url: "https://github.com/evandepol/hassio-addons/tree/main/claude-home"
 
 # Web interface configuration
 ingress: true

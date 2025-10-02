@@ -10,7 +10,7 @@ arch:
   - amd64
 
 # External resources
-url: "https://github.com/cabinlab/hassio-addons"
+url: "https://github.com/evandepol/hassio-addons"
 
 # No web interface - runs as background service
 ingress: false
