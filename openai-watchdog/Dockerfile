@@ -42,11 +42,25 @@ RUN apk del build-base cmake ninja pkgconf musl-dev linux-headers || true
 
 # Create directory for monitoring data
 RUN mkdir -p /config/openai-watchdog
+RUN mkdir -p /opt/models
+ENV WATCHDOG_BUNDLED_MODEL="/opt/models/llama-3.2-3b-instruct-q4_k_m.gguf"
 WORKDIR /config
 
 # Copy application files
 COPY run.sh /run.sh
 COPY watchdog/ /app/watchdog/
+
+# Optionally bundle a model at build time (provide BUNDLE_MODEL_URL)
+ARG BUNDLE_MODEL_URL=""
+RUN set -eux; \
+        if [ -n "$BUNDLE_MODEL_URL" ]; then \
+            echo "Downloading bundled model from $BUNDLE_MODEL_URL"; \
+            apk add --no-cache curl ca-certificates; \
+            curl -L "$BUNDLE_MODEL_URL" -o "$WATCHDOG_BUNDLED_MODEL"; \
+            sha256sum "$WATCHDOG_BUNDLED_MODEL" || true; \
+        else \
+            echo "No BUNDLE_MODEL_URL provided; building without embedded model"; \
+        fi
 RUN chmod +x /run.sh
 RUN chmod +x /app/watchdog/*.py
 

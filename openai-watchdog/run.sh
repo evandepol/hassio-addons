@@ -21,7 +21,7 @@ init_environment() {
     local local_enabled=$(bashio::config 'local_enabled' 'false')
     local local_base_url=$(bashio::config 'local_base_url' '')
     local local_provider=$(bashio::config 'local_provider' 'llama_cpp')
-    local local_model_path=$(bashio::config 'local_model_path' '')
+    # Deprecated: local_model_path now controlled by bundled model
     local local_server_port=$(bashio::config 'local_server_port' '8088')
     local local_n_threads=$(bashio::config 'local_n_threads' '0')
     local local_max_cpu_load=$(bashio::config 'local_max_cpu_load' '1.5')
@@ -43,7 +43,7 @@ init_environment() {
     export WATCHDOG_LOCAL_ENABLED="$local_enabled"
     export WATCHDOG_LOCAL_BASE_URL="$local_base_url"
     export WATCHDOG_LOCAL_PROVIDER="$local_provider"
-    export WATCHDOG_LOCAL_MODEL_PATH="$local_model_path"
+    export WATCHDOG_LOCAL_MODEL_PATH="${WATCHDOG_BUNDLED_MODEL:-/opt/models/llama-3.2-3b-instruct-q4_k_m.gguf}"
     export WATCHDOG_LOCAL_SERVER_PORT="$local_server_port"
     export WATCHDOG_LOCAL_N_THREADS="$local_n_threads"
     export WATCHDOG_LOCAL_MAX_CPU_LOAD="$local_max_cpu_load"
@@ -123,9 +123,7 @@ start_monitoring_service() {
     # Optionally start embedded local LLM server if enabled and no explicit base URL is set
     if [ "$WATCHDOG_LOCAL_ENABLED" = "true" ] && [ -z "$WATCHDOG_LOCAL_BASE_URL" ]; then
         if [ "$WATCHDOG_LOCAL_PROVIDER" = "llama_cpp" ]; then
-            if [ -z "$WATCHDOG_LOCAL_MODEL_PATH" ]; then
-                bashio::log.error "Local provider enabled but no local_model_path set; running without local server"
-            else
+            if [ -f "$WATCHDOG_LOCAL_MODEL_PATH" ]; then
                 bashio::log.info "Launching embedded llama.cpp server on port ${WATCHDOG_LOCAL_SERVER_PORT} with model ${WATCHDOG_LOCAL_MODEL_PATH}"
                 mkdir -p /config/openai-watchdog/models
                 # Start server in background
@@ -142,6 +140,8 @@ start_monitoring_service() {
                 bashio::log.info "Embedded local LLM available at ${WATCHDOG_LOCAL_BASE_URL}"
                 # Give the server a moment to start
                 sleep 2
+            else
+                bashio::log.error "Local provider enabled but bundled model not present at $WATCHDOG_LOCAL_MODEL_PATH; running without local server"
             fi
         fi
     fi
