@@ -55,14 +55,21 @@ COPY run.sh /run.sh
 COPY watchdog/ /app/watchdog/
 
 # Optionally bundle a model at build time (provide BUNDLE_MODEL_URL and optional BUNDLE_MODEL_SHA256)
+# If the source requires auth (e.g., Hugging Face gated models), pass BUNDLE_MODEL_HF_TOKEN.
 ARG BUNDLE_MODEL_URL=""
 ARG BUNDLE_MODEL_SHA256=""
+ARG BUNDLE_MODEL_HF_TOKEN=""
 ENV WATCHDOG_BUNDLED_MODEL_SHA256="$BUNDLE_MODEL_SHA256"
 RUN set -eux; \
         if [ -n "$BUNDLE_MODEL_URL" ]; then \
             echo "Downloading bundled model from $BUNDLE_MODEL_URL"; \
             apk add --no-cache curl ca-certificates; \
-            curl -L "$BUNDLE_MODEL_URL" -o "$WATCHDOG_BUNDLED_MODEL"; \
+            if [ -n "$BUNDLE_MODEL_HF_TOKEN" ]; then \
+                echo "Using authenticated download (Hugging Face token provided)"; \
+                curl -fL -H "Authorization: Bearer $BUNDLE_MODEL_HF_TOKEN" "$BUNDLE_MODEL_URL" -o "$WATCHDOG_BUNDLED_MODEL"; \
+            else \
+                curl -fL "$BUNDLE_MODEL_URL" -o "$WATCHDOG_BUNDLED_MODEL"; \
+            fi; \
             if [ -n "$BUNDLE_MODEL_SHA256" ]; then \
                 echo "$BUNDLE_MODEL_SHA256  $WATCHDOG_BUNDLED_MODEL" | sha256sum -c -; \
                 echo "Model checksum verified"; \

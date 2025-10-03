@@ -7,7 +7,7 @@ init_environment() {
     chmod 700 /config/openai-watchdog
     
     # Create subdirectories for different data types
-    mkdir -p /config/openai-watchdog/{insights,patterns,costs,logs}
+    mkdir -p /config/openai-watchdog/{insights,patterns,costs,logs,models}
     
     # Set environment variables
     export OPENAI_WATCHDOG_DATA="/config/openai-watchdog"
@@ -49,16 +49,33 @@ init_environment() {
     export WATCHDOG_LOCAL_BASE_URL="$local_base_url"
         export WATCHDOG_LOCAL_PROVIDER="$local_provider"
         export WATCHDOG_LOCAL_MODEL="$local_model"
-        # Deterministic bundled path for supported model(s)
+        # Determine model filename and prefer persistent storage under /config
+        MODEL_FILENAME=""
         case "$local_model" in
             "llama-3.2-3b")
-                export WATCHDOG_LOCAL_MODEL_PATH="${WATCHDOG_BUNDLED_MODEL:-/opt/models/llama-3.2-3b-instruct-q4_k_m.gguf}"
+                MODEL_FILENAME="llama-3.2-3b-instruct-q4_k_m.gguf"
                 ;;
             *)
                 bashio::log.error "Unsupported local_model: $local_model"
-                export WATCHDOG_LOCAL_MODEL_PATH=""
                 ;;
         esac
+        export WATCHDOG_PERSIST_MODEL_DIR="/config/openai-watchdog/models"
+        mkdir -p "$WATCHDOG_PERSIST_MODEL_DIR"
+        if [ -n "$MODEL_FILENAME" ]; then
+            PERSIST_PATH="$WATCHDOG_PERSIST_MODEL_DIR/$MODEL_FILENAME"
+            BUNDLED_PATH="${WATCHDOG_BUNDLED_MODEL:-/opt/models/$MODEL_FILENAME}"
+            if [ -f "$PERSIST_PATH" ]; then
+                export WATCHDOG_LOCAL_MODEL_PATH="$PERSIST_PATH"
+            elif [ -f "$BUNDLED_PATH" ]; then
+                cp -f "$BUNDLED_PATH" "$PERSIST_PATH" && chmod 0644 "$PERSIST_PATH" || true
+                export WATCHDOG_LOCAL_MODEL_PATH="$PERSIST_PATH"
+            else
+                # Default target for download
+                export WATCHDOG_LOCAL_MODEL_PATH="$PERSIST_PATH"
+            fi
+        else
+            export WATCHDOG_LOCAL_MODEL_PATH=""
+        fi
     export WATCHDOG_LOCAL_SERVER_PORT="$local_server_port"
     export WATCHDOG_LOCAL_N_THREADS="$local_n_threads"
     export WATCHDOG_LOCAL_MAX_CPU_LOAD="$local_max_cpu_load"
