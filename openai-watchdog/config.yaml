@@ -43,6 +43,7 @@ options:
   # If local_model_url is provided and the model file is missing, the add-on
   # will download it on start and verify checksum if local_model_sha256 is set.
   accept_model_license: false
+  # If left empty and local_model is llama-3.2-3b, a sensible default URL will be used.
   local_model_url: ""
   local_model_sha256: ""
   check_interval: 30

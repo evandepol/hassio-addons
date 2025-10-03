@@ -110,6 +110,21 @@ init_environment() {
 
     # If local model file is missing but a URL is provided and user accepted license, download now
     if [ "$local_enabled" = "true" ] && [ -z "$local_base_url" ]; then
+        # Provide a default URL for supported models when user hasn't set one
+        if [ -z "$local_model_url" ]; then
+            case "$local_model" in
+                "llama-3.2-3b")
+                    # Default GGUF URL for Llama 3.2 3B Instruct Q4_K_M (community GGUF conversion)
+                    # Note: Download may require accepting the model license on the hosting site.
+                    local_model_url="${WATCHDOG_DEFAULT_MODEL_URL:-https://huggingface.co/TheBloke/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct.Q4_K_M.gguf}"
+                    # Optional: provide default checksum via env WATCHDOG_DEFAULT_MODEL_SHA256 if desired
+                    if [ -z "$local_model_sha256" ] && [ -n "${WATCHDOG_DEFAULT_MODEL_SHA256:-}" ]; then
+                        local_model_sha256="$WATCHDOG_DEFAULT_MODEL_SHA256"
+                    fi
+                    ;;
+            esac
+        fi
+
         if [ ! -f "$WATCHDOG_LOCAL_MODEL_PATH" ] && [ -n "$local_model_url" ]; then
             if [ "$accept_model_license" != "true" ]; then
                 bashio::log.error "Model URL provided but 'accept_model_license' is false. Refusing to download."
