@@ -131,18 +131,41 @@ init_environment() {
             else
                 bashio::log.info "Downloading local model to $WATCHDOG_LOCAL_MODEL_PATH from $local_model_url"
                 mkdir -p "$(dirname "$WATCHDOG_LOCAL_MODEL_PATH")"
+                export WATCHDOG_LOCAL_MODEL_URL_USED="$local_model_url"
+                DOWNLOAD_OK=0
                 if command -v curl >/dev/null 2>&1; then
-                    curl -L "$local_model_url" -o "$WATCHDOG_LOCAL_MODEL_PATH"
+                    if curl -fL --retry 3 --retry-delay 2 -o "$WATCHDOG_LOCAL_MODEL_PATH" "$local_model_url"; then
+                        DOWNLOAD_OK=1
+                    fi
                 else
-                    wget -O "$WATCHDOG_LOCAL_MODEL_PATH" "$local_model_url"
+                    if wget -q --tries=3 -O "$WATCHDOG_LOCAL_MODEL_PATH" "$local_model_url"; then
+                        DOWNLOAD_OK=1
+                    fi
                 fi
-                if [ -n "$local_model_sha256" ]; then
-                    echo "$local_model_sha256  $WATCHDOG_LOCAL_MODEL_PATH" | sha256sum -c - && bashio::log.info "Model checksum verified" || {
-                        bashio::log.error "Checksum verification failed for downloaded model";
-                        rm -f "$WATCHDOG_LOCAL_MODEL_PATH";
-                    }
+                if [ "$DOWNLOAD_OK" -ne 1 ]; then
+                    bashio::log.error "Model download failed (HTTP error)."
+                    export WATCHDOG_LOCAL_MODEL_DOWNLOAD_ERROR="download_failed"
+                    rm -f "$WATCHDOG_LOCAL_MODEL_PATH" 2>/dev/null || true
+                else
+                    # Basic sanity check: require at least ~1MB to avoid HTML error pages
+                    sz=$(wc -c < "$WATCHDOG_LOCAL_MODEL_PATH" 2>/dev/null || echo 0)
+                    if [ "$sz" -lt 1000000 ]; then
+                        bashio::log.error "Downloaded file is too small ($sz bytes). Likely a gated URL or error page."
+                        export WATCHDOG_LOCAL_MODEL_DOWNLOAD_ERROR="file_too_small"
+                        rm -f "$WATCHDOG_LOCAL_MODEL_PATH" 2>/dev/null || true
+                    else
+                        if [ -n "$local_model_sha256" ]; then
+                            if echo "$local_model_sha256  $WATCHDOG_LOCAL_MODEL_PATH" | sha256sum -c -; then
+                                bashio::log.info "Model checksum verified"
+                            else
+                                bashio::log.error "Checksum verification failed for downloaded model"
+                                export WATCHDOG_LOCAL_MODEL_DOWNLOAD_ERROR="checksum_failed"
+                                rm -f "$WATCHDOG_LOCAL_MODEL_PATH"
+                            fi
+                        fi
+                        chmod 0644 "$WATCHDOG_LOCAL_MODEL_PATH" || true
+                    fi
                 fi
-                chmod 0644 "$WATCHDOG_LOCAL_MODEL_PATH" || true
             fi
         fi
     fi
@@ -190,12 +213,12 @@ start_monitoring_service() {
                 bashio::log.info "Launching embedded llama.cpp server on port ${WATCHDOG_LOCAL_SERVER_PORT} with model ${WATCHDOG_LOCAL_MODEL_PATH}"
                 mkdir -p /config/openai-watchdog/models
                 # Start server in background
-                GGML_QNT_K_S=1 python3 -m llama_cpp.server \
+                                GGML_QNT_K_S=1 python3 -m llama_cpp.server \
                   --model "$WATCHDOG_LOCAL_MODEL_PATH" \
                   --host 0.0.0.0 \
                   --port "$WATCHDOG_LOCAL_SERVER_PORT" \
                   --n_threads "$WATCHDOG_LOCAL_N_THREADS" \
-                  --chat-format openai &
+                                    --chat_format openai &
                 LOCAL_SRV_PID=$!
                 echo $LOCAL_SRV_PID > /var/run/watchdog_local_llm.pid || true
                 # Export discovered base URL for the analyzer
