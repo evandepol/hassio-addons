@@ -66,7 +66,8 @@ class InsightManager:
                 'details': analysis.get('insights', []),
                 'changes_analyzed': analysis.get('changes_analyzed', 0),
                 'requires_attention': analysis.get('requires_attention', False),
-                'status': 'new'
+                'status': 'new',
+                'provider': analysis.get('provider', analysis.get('cost_info', {}).get('provider', 'unknown'))
             }
             
             # Add to insights list

@@ -36,6 +36,7 @@ class StatusWebServer:
       table { border-collapse: collapse; width: 100%; }
       th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; }
       code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .pill { display:inline-block; padding:2px 6px; border-radius:10px; font-size:11px; border:1px solid #ddd; background:#f3f3f3; }
     </style>
   </head>
   <body>
@@ -51,6 +52,18 @@ class StatusWebServer:
         <div>
           <div class="muted">Notify on any insight</div>
           <div id="notify_any">-</div>
+        </div>
+        <div>
+          <div class="muted">Mode</div>
+          <div id="mode">-</div>
+        </div>
+        <div>
+          <div class="muted">Local enabled</div>
+          <div id="local_enabled">-</div>
+        </div>
+        <div>
+          <div class="muted">Last provider</div>
+          <div id="last_provider">-</div>
         </div>
       </div>
     </div>
@@ -74,6 +87,9 @@ class StatusWebServer:
           document.getElementById('scope').textContent = (data.monitoring_scope || []).join(', ');
           document.getElementById('interval').textContent = data.check_interval;
           document.getElementById('notify_any').textContent = data.notify_on_any_insight ? 'Yes' : 'No';
+          document.getElementById('mode').textContent = data.mode || 'auto';
+          document.getElementById('local_enabled').textContent = data.local_enabled ? 'Yes' : 'No';
+          document.getElementById('last_provider').textContent = data.last_provider || 'unknown';
 
           const u = data.usage || {}; const t = u.today || {};
           document.getElementById('usage').innerHTML = `
@@ -90,7 +106,7 @@ class StatusWebServer:
           } else {
             cont.innerHTML = insights.map(i => `
               <div class="card" style="margin:8px 0;background:#fafafa">
-                <div><strong>${(i.type || 'general').toString().toUpperCase()}</strong> · ${(i.confidence*100).toFixed(0)}%</div>
+                <div><strong>${(i.type || 'general').toString().toUpperCase()}</strong> · ${((i.confidence||0)*100).toFixed(0)}% <span class="pill" title="Provider tier">${(i.provider || 'unknown')}</span></div>
                 <div>${i.summary || ''}</div>
                 <div class="muted">${i.timestamp || ''}</div>
               </div>`).join('');
@@ -100,6 +116,8 @@ class StatusWebServer:
         }
       }
       load();
+      // Auto-refresh periodically to reflect new insights and tier changes
+      setInterval(load, 5000);
     </script>
   </body>
 </html>
@@ -111,6 +129,9 @@ class StatusWebServer:
                 'check_interval': self.config['check_interval'],
                 'monitoring_scope': self.config['monitoring_scope'],
                 'notify_on_any_insight': self.config.get('notify_on_any_insight', False),
+                'mode': os.getenv('WATCHDOG_MODE', 'auto'),
+                'local_enabled': os.getenv('WATCHDOG_LOCAL_ENABLED', 'false').lower() == 'true',
+                'last_provider': self.config.get('last_provider', None),
                 'usage': self.cost_tracker.get_usage_summary() if self.cost_tracker else {},
                 'recent_insights': self.insight_manager.get_recent_insights(24) if self.insight_manager else []
             })
