@@ -3,6 +3,7 @@ Lightweight ingress web UI server for OpenAI Watchdog
 """
 
 import os
+import logging
 from aiohttp import web
 
 
@@ -17,6 +18,12 @@ class StatusWebServer:
         self.web_runner = None
 
     async def start(self):
+        # Create app with a quieter access logger to reduce noise
+        access_logger = logging.getLogger('aiohttp.access')
+        try:
+            access_logger.setLevel(logging.WARNING)
+        except Exception:
+            pass
         self.web_app = web.Application()
 
         html_str = """
@@ -65,6 +72,10 @@ class StatusWebServer:
           <div class="muted">Last provider</div>
           <div id="last_provider">-</div>
         </div>
+        <div>
+          <div class="muted">Local base URL</div>
+          <div id="last_local_base_url">-</div>
+        </div>
       </div>
     </div>
 
@@ -90,6 +101,7 @@ class StatusWebServer:
           document.getElementById('mode').textContent = data.mode || 'auto';
           document.getElementById('local_enabled').textContent = data.local_enabled ? 'Yes' : 'No';
           document.getElementById('last_provider').textContent = data.last_provider || 'unknown';
+          document.getElementById('last_local_base_url').textContent = data.last_local_base_url || '';
 
           const u = data.usage || {}; const t = u.today || {};
           document.getElementById('usage').innerHTML = `
@@ -117,7 +129,7 @@ class StatusWebServer:
       }
       load();
       // Auto-refresh periodically to reflect new insights and tier changes
-      setInterval(load, 5000);
+    setInterval(load, 10000);
     </script>
   </body>
 </html>
@@ -132,6 +144,7 @@ class StatusWebServer:
                 'mode': os.getenv('WATCHDOG_MODE', 'auto'),
                 'local_enabled': os.getenv('WATCHDOG_LOCAL_ENABLED', 'false').lower() == 'true',
                 'last_provider': self.config.get('last_provider', None),
+                'last_local_base_url': self.config.get('last_local_base_url', None),
                 'usage': self.cost_tracker.get_usage_summary() if self.cost_tracker else {},
                 'recent_insights': self.insight_manager.get_recent_insights(24) if self.insight_manager else []
             })

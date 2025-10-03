@@ -76,11 +76,7 @@ class WatchdogMonitor:
         try:
             if self.provider_policy is not None:
                 provider, local_base_url = self.provider_policy.choose_provider(self.openai_analyzer, self.cost_tracker)
-                logger.info(f"Provider selected: {provider or 'online'}" + (f" (local_base_url={local_base_url})" if provider == 'local' else ""))
-                # Expose last provider choice via shared config for UI/status
-                self.config['last_provider'] = provider or 'online'
-                if provider == 'local':
-                    self.config['last_local_base_url'] = local_base_url
+                logger.info(f"Provider selected (desired): {provider or 'online'}" + (f" (local_base_url={local_base_url})" if provider == 'local' else ""))
         except Exception as e:
             logger.warning(f"Provider selection failed: {e}")
             provider, local_base_url = None, None
@@ -93,6 +89,15 @@ class WatchdogMonitor:
             provider=provider,
             local_base_url=local_base_url
         )
+
+        # Reflect the actual provider used (after possible fallback)
+        try:
+            actual_provider = analysis.get('provider', provider or 'online')
+            self.config['last_provider'] = actual_provider
+            if actual_provider == 'local':
+                self.config['last_local_base_url'] = local_base_url
+        except Exception:
+            pass
         
         # Track API cost
         self.cost_tracker.record_request(analysis.get('cost_info', {}))
