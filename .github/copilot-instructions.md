@@ -50,6 +50,14 @@ addon-name/
 - `.dev-version` files are gitignored and track current dev builds
 - Development environments: `haos` (primary), `hassdeb` (validation), `hadocker` (experimental)
 
+### Versioning and Push Policy
+
+- Always bump the add-on's `version` in its `config.yaml` before pushing any functional changes (UI/API/runtime, behavior, or dependencies).
+- Use semantic, monotonic version increments. Example: update `openai-watchdog/config.yaml` from `1.0.17` → `1.0.18` for UI/API changes.
+- Commit the version bump together with the code changes or as an immediate follow-up commit with a clear message, e.g. `chore(openai-watchdog): bump version to 1.0.18`.
+- Never push behavioral changes to `main` without a version bump—Supervisor watches versions to refresh add-ons.
+- For development builds, use the `dev/*` scripts which manage temporary versions via `.dev-version` and do not commit those dev versions.
+
 ## Home Assistant Integration Patterns
 
 ### Bashio Library Usage
