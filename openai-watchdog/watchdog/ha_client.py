@@ -67,8 +67,10 @@ class HomeAssistantClient:
             # Use timezone-aware ISO format (e.g., 2025-10-02T20:54:00+00:00) and pass via query param for safe encoding
             from datetime import timezone
             since_iso = since.astimezone(timezone.utc).replace(microsecond=0).isoformat()
+            now_iso = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
             params = {
                 'start_time': since_iso,
+                'end_time': now_iso,
                 'minimal_response': '1'
             }
             
@@ -90,7 +92,52 @@ class HomeAssistantClient:
                     except Exception:
                         snippet = ''
                     logger.error(f"Failed to get history: {response.status} (start_time={since_iso}) {snippet}")
-                    return []
+
+                    # Fallback: If server requires filter_entity_id, query in chunks by scoped entities
+                    if 'filter_entity_id is missing' in snippet.lower():
+                        try:
+                            # Get entities in scope
+                            states = await self.get_current_state(scope)
+                            entity_ids = list(states.keys())
+                            if not entity_ids:
+                                return []
+                            # Chunk entity IDs to avoid URL length limits
+                            CHUNK_SIZE = 150
+                            aggregated_history = []
+                            for i in range(0, len(entity_ids), CHUNK_SIZE):
+                                chunk = entity_ids[i:i+CHUNK_SIZE]
+                                chunk_params = {
+                                    'start_time': since_iso,
+                                    'end_time': now_iso,
+                                    'minimal_response': '1',
+                                    'filter_entity_id': ','.join(chunk)
+                                }
+                                async with session.get(
+                                    f'{self.url}/api/history/period',
+                                    headers=self.headers,
+                                    params=chunk_params
+                                ) as chunk_resp:
+                                    if chunk_resp.status == 200:
+                                        chunk_hist = await chunk_resp.json()
+                                        # history is a list of lists; aggregate
+                                        aggregated_history.extend(chunk_hist)
+                                    else:
+                                        chunk_txt = await chunk_resp.text()
+                                        logger.warning(
+                                            f"History chunk failed: {chunk_resp.status} for {len(chunk)} entities; {chunk_txt[:120]}"
+                                        )
+                            if aggregated_history:
+                                changes = self._extract_changes_from_history(aggregated_history, scope)
+                                logger.info(
+                                    f"History fallback used: {len(changes)} changes from {len(entity_ids)} entities in {((len(entity_ids)-1)//CHUNK_SIZE)+1} calls"
+                                )
+                                return changes
+                        except Exception as fe:
+                            logger.error(f"History fallback error: {fe}")
+                        # If fallback fails, return empty safely
+                        return []
+                    else:
+                        return []
                     
         except Exception as e:
             logger.error(f"Error getting recent changes: {e}")
