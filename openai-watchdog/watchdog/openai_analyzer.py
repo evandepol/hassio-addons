@@ -193,7 +193,7 @@ class OpenAIAnalyzer:
                         pass
                     self._log_api_call(
                         prompt="[TIER=local] Missing local_base_url; using mock",
-                        response_text=json.dumps(mock_result),
+                        response_text=json.dumps(mock_result) if isinstance(mock_result, dict) else str(mock_result),
                         usage=None,
                         cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'tier-local-missing-url', 'provider': 'mock', 'success': True}
                     )
