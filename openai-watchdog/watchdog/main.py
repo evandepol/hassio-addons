@@ -12,13 +12,13 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
 
-from watchdog_monitor import WatchdogMonitor
-from ha_client import HomeAssistantClient
-from openai_analyzer import OpenAIAnalyzer
-from cost_tracker import CostTracker
-from insight_manager import InsightManager
-from web_ui import StatusWebServer
-from provider_policy import ProviderPolicy
+from .watchdog_monitor import WatchdogMonitor
+from .ha_client import HomeAssistantClient
+from .openai_analyzer import OpenAIAnalyzer
+from .cost_tracker import CostTracker
+from .insight_manager import InsightManager
+from .web_ui import StatusWebServer
+from .provider_policy import ProviderPolicy
 
 # Configure logging
 logging.basicConfig(

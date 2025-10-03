@@ -21,6 +21,7 @@ init_environment() {
     local local_enabled=$(bashio::config 'local_enabled' 'false')
     local local_base_url=$(bashio::config 'local_base_url' '')
     local local_provider=$(bashio::config 'local_provider' 'llama_cpp')
+    local local_model=$(bashio::config 'local_model' 'llama-3.2-3b')
     # Deprecated: local_model_path now controlled by bundled model
     local local_server_port=$(bashio::config 'local_server_port' '8088')
     local local_n_threads=$(bashio::config 'local_n_threads' '0')
@@ -42,8 +43,18 @@ init_environment() {
     export WATCHDOG_MODE="$mode"
     export WATCHDOG_LOCAL_ENABLED="$local_enabled"
     export WATCHDOG_LOCAL_BASE_URL="$local_base_url"
-    export WATCHDOG_LOCAL_PROVIDER="$local_provider"
-    export WATCHDOG_LOCAL_MODEL_PATH="${WATCHDOG_BUNDLED_MODEL:-/opt/models/llama-3.2-3b-instruct-q4_k_m.gguf}"
+        export WATCHDOG_LOCAL_PROVIDER="$local_provider"
+        export WATCHDOG_LOCAL_MODEL="$local_model"
+        # Deterministic bundled path for supported model(s)
+        case "$local_model" in
+            "llama-3.2-3b")
+                export WATCHDOG_LOCAL_MODEL_PATH="${WATCHDOG_BUNDLED_MODEL:-/opt/models/llama-3.2-3b-instruct-q4_k_m.gguf}"
+                ;;
+            *)
+                bashio::log.error "Unsupported local_model: $local_model"
+                export WATCHDOG_LOCAL_MODEL_PATH=""
+                ;;
+        esac
     export WATCHDOG_LOCAL_SERVER_PORT="$local_server_port"
     export WATCHDOG_LOCAL_N_THREADS="$local_n_threads"
     export WATCHDOG_LOCAL_MAX_CPU_LOAD="$local_max_cpu_load"
@@ -96,17 +107,24 @@ init_environment() {
 setup_ha_access() {
     bashio::log.info "Setting up Home Assistant API access..."
     
-    # Get Home Assistant details
-    # Supervisor injects SUPERVISOR_TOKEN; keep HASSIO_TOKEN for backward compat
-    export HASSIO_TOKEN="${SUPERVISOR_TOKEN:-$HASSIO_TOKEN}"
-    export HA_URL="http://supervisor/core"
-    
-    # Test API connectivity
-    if curl -s -H "Authorization: Bearer ${HASSIO_TOKEN}" "${HA_URL}/api/" > /dev/null; then
-        bashio::log.info "Home Assistant API connection successful"
+    # Detect environment: supervised vs standalone
+    if [ -n "${SUPERVISOR_TOKEN:-}" ]; then
+        # Supervised add-on mode
+        export HASSIO_TOKEN="${SUPERVISOR_TOKEN}"
+        export HA_URL="http://supervisor/core"
+        # Test API connectivity
+        if curl -s -H "Authorization: Bearer ${HASSIO_TOKEN}" "${HA_URL}/api/" > /dev/null; then
+            bashio::log.info "Home Assistant API connection successful"
+        else
+            bashio::log.error "Failed to connect to Home Assistant API"
+            exit 1
+        fi
     else
-        bashio::log.error "Failed to connect to Home Assistant API"
-        exit 1
+        # Standalone/container mode for local testing
+        export HA_URL="${HA_URL:-http://homeassistant.local:8123}"
+        export HASSIO_TOKEN="${HASSIO_TOKEN:-}"
+        bashio::log.info "Standalone mode detected: HA_URL=${HA_URL}"
+        bashio::log.info "Skipping Supervisor API connectivity check"
     fi
 }
 
