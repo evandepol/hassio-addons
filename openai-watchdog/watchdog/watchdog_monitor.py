@@ -82,6 +82,11 @@ class WatchdogMonitor:
         # Process any insights or alerts
         if analysis.get('requires_attention', False):
             await self.insight_manager.process_insight(analysis)
+        elif self.config.get('notify_on_any_insight', False) and analysis.get('insights'):
+            # Lower-severity informational notification when opted-in
+            safe_analysis = dict(analysis)
+            safe_analysis['requires_attention'] = False
+            await self.insight_manager.process_insight(safe_analysis)
         
         # Update learning patterns if enabled
         if self.config['enable_learning']:

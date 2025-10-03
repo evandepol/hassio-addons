@@ -1,6 +1,6 @@
 name: "OpenAI Watchdog"
 description: "Intelligent Home Assistant monitoring with continuous OpenAI analysis"
-version: "1.0.10"
+version: "1.0.11"
 slug: "openai_watchdog"
 init: false
 
@@ -35,6 +35,7 @@ options:
   enable_learning: true
   cost_limit_daily: 1.00
   log_api_payloads_to_stdout: false
+  notify_on_any_insight: false
 
 schema:
   openai_api_key: "password"
@@ -47,6 +48,7 @@ schema:
   enable_learning: "bool?"
   cost_limit_daily: "float(0.10,10.00)?"
   log_api_payloads_to_stdout: "bool?"
+  notify_on_any_insight: "bool?"
 
 # Volume mapping for persistent storage
 map:

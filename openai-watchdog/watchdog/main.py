@@ -52,6 +52,7 @@ class OpenAIWatchdogService:
             'max_daily_calls': int(os.getenv('WATCHDOG_MAX_DAILY_CALLS', '1000')),
             'cost_limit': float(os.getenv('WATCHDOG_COST_LIMIT', '1.00')),
             'enable_learning': os.getenv('WATCHDOG_ENABLE_LEARNING', 'true').lower() == 'true',
+            'notify_on_any_insight': os.getenv('WATCHDOG_NOTIFY_ON_ANY_INSIGHT', 'false').lower() == 'true',
             'monitoring_scope': self._parse_monitoring_scope(),
             'notification_service': os.getenv('WATCHDOG_NOTIFICATION_SERVICE', 'persistent_notification'),
             'data_dir': os.getenv('OPENAI_WATCHDOG_DATA', '/config/openai-watchdog'),
