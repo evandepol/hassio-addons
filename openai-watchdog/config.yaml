@@ -43,7 +43,7 @@ schema:
   check_interval: "int(10,300)?"
   insight_threshold: "float(0.5,1.0)?"
   max_daily_api_calls: "int(100,5000)?"
-  monitoring_scope: "[list(climate|security|energy|automation_performance|device_health|patterns)]?"
+  monitoring_scope: "list(climate|security|energy|automation_performance|device_health|patterns)?"
   notification_service: "str?"
   enable_learning: "bool?"
   cost_limit_daily: "float(0.10,10.00)?"
@@ -51,9 +51,6 @@ schema:
 # Volume mapping for persistent storage
 map:
   - config:rw    # OpenAI configuration and monitoring data
-
-# Service startup configuration
-startup: services
 
 # Require Home Assistant API access
 homeassistant_api: true
