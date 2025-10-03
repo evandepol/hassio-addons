@@ -72,7 +72,13 @@ class OpenAIWatchdogService:
             import json
             parsed = json.loads(raw)
             if isinstance(parsed, list):
-                return [str(x).lower() for x in parsed]
+                parsed_lower = [str(x).lower() for x in parsed]
+                if 'all' in parsed_lower:
+                    return [
+                        'climate', 'security', 'energy',
+                        'automation_performance', 'device_health', 'patterns'
+                    ]
+                return parsed_lower
         except Exception:
             pass
         # Try comma-separated list from UI edge cases
