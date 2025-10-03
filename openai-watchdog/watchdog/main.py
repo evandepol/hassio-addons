@@ -60,13 +60,23 @@ class OpenAIWatchdogService:
         }
     
     def _parse_monitoring_scope(self) -> List[str]:
-        """Parse monitoring scope from environment"""
-        scope_str = os.getenv('WATCHDOG_MONITORING_SCOPE', '["climate","security","energy"]')
+        """Parse monitoring scope. Accepts single string like 'all' or a list-json string."""
+        raw = os.getenv('WATCHDOG_MONITORING_SCOPE', 'all').strip().lower()
+        if raw == 'all' or raw == '' or raw == 'true':
+            return [
+                'climate', 'security', 'energy',
+                'automation_performance', 'device_health', 'patterns'
+            ]
+        # Try JSON list
         try:
             import json
-            return json.loads(scope_str)
-        except:
-            return ["climate", "security", "energy"]
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                return [str(x).lower() for x in parsed]
+        except Exception:
+            pass
+        # Otherwise treat as single category
+        return [raw]
     
     async def initialize(self):
         """Initialize all service components"""

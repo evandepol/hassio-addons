@@ -58,15 +58,18 @@ class HomeAssistantClient:
     async def get_recent_changes(self, since: Optional[datetime] = None, scope: List[str] = None) -> List[Dict]:
         """Get recent state changes from history"""
         if since is None:
-            since = datetime.now() - timedelta(minutes=5)
+            since = datetime.utcnow() - timedelta(minutes=5)
         
         try:
             # Use history API to get changes
             session = await self._get_session()
-            since_iso = since.isoformat()
+            # Use UTC Zulu time without microseconds and URL-encode
+            from urllib.parse import quote
+            since_iso = since.replace(microsecond=0).isoformat() + 'Z'
+            since_param = quote(since_iso, safe='')
             
             async with session.get(
-                f'{self.url}/api/history/period/{since_iso}',
+                f'{self.url}/api/history/period/{since_param}',
                 headers=self.headers
             ) as response:
                 if response.status == 200:

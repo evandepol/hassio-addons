@@ -31,8 +31,10 @@ init_environment() {
     export WATCHDOG_COST_LIMIT="$cost_limit"
     export WATCHDOG_ENABLE_LEARNING="$enable_learning"
     
-    # Get monitoring scope as JSON array
-    local monitoring_scope=$(bashio::config 'monitoring_scope')
+    # Get monitoring scope; allow a single string like 'all' or a single category
+    local monitoring_scope=$(bashio::config 'monitoring_scope' 'all')
+    # Normalize to lowercase
+    monitoring_scope=$(echo "$monitoring_scope" | tr '[:upper:]' '[:lower:]')
     export WATCHDOG_MONITORING_SCOPE="$monitoring_scope"
     
     # Notification service
