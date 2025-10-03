@@ -132,6 +132,18 @@ class OpenAIAnalyzer:
             logger.error(f"OpenAI API error: {e}")
             # Fallback to mock analysis
             mock_result = await self._mock_openai_analysis(changes)
+            # If unauthorized, attach a clear insight message
+            try:
+                msg = str(e)
+                if '401' in msg or 'invalid_api_key' in msg or 'Incorrect API key' in msg:
+                    mock_result.setdefault('insights', []).insert(0, {
+                        'type': 'configuration',
+                        'message': 'OpenAI authorization failed (401). Please verify your API key in the add-on configuration.',
+                        'confidence': 0.99
+                    })
+                    mock_result['requires_attention'] = True
+            except Exception:
+                pass
             self._log_api_call(
                 prompt="[MOCK-FALLBACK] OpenAI API error; generated mock analysis",
                 response_text=json.dumps(mock_result) if isinstance(mock_result, dict) else str(mock_result),

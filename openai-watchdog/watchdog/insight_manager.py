@@ -88,8 +88,20 @@ class InsightManager:
         """Classify the type of insight based on analysis"""
         insights = analysis.get('insights', [])
         
-        # Simple classification based on keywords
-        insight_text = ' '.join(insights).lower()
+        # Normalize to text for classification (supports list of dicts or strings)
+        def _flatten_text(items):
+            parts = []
+            for it in items:
+                if isinstance(it, dict):
+                    msg = it.get('message') or ''
+                    typ = it.get('type') or ''
+                    parts.append(str(msg))
+                    parts.append(str(typ))
+                else:
+                    parts.append(str(it))
+            return ' '.join([p for p in parts if p]).lower()
+
+        insight_text = _flatten_text(insights)
         
         if any(word in insight_text for word in ['security', 'door', 'lock', 'alarm', 'motion']):
             return 'security'
@@ -111,13 +123,17 @@ class InsightManager:
         if not insights:
             return "System monitoring detected activity requiring attention"
         
-        # Take first insight as primary summary
+        # Take first insight as primary summary; support dict or str
         primary = insights[0]
-        
-        if len(insights) > 1:
-            return f"{primary} (+{len(insights)-1} additional observations)"
+        if isinstance(primary, dict):
+            primary_msg = primary.get('message') or str(primary)
         else:
-            return primary
+            primary_msg = str(primary)
+
+        if len(insights) > 1:
+            return f"{primary_msg} (+{len(insights)-1} additional observations)"
+        else:
+            return primary_msg
     
     async def _send_notification(self, insight: Dict[str, Any]):
         """Send notification for important insights"""
