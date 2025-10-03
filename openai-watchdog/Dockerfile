@@ -8,7 +8,9 @@ RUN apk add --no-cache \
     py3-aiohttp \
     bash \
     curl \
-    jq
+    jq \
+    libgomp \
+    libstdc++
 
 # Resolve musl/musl-dev mismatch and add build toolchain (single layer to avoid stale cache)
 RUN set -eux; \
