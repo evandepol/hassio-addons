@@ -4,7 +4,7 @@ Core monitoring loop and state management
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class WatchdogMonitor:
     
     async def _monitoring_cycle(self):
         """Execute one monitoring cycle"""
-        cycle_start = datetime.now()
+        cycle_start = datetime.now(timezone.utc)
         
         # Check if we're within cost/API limits
         if not self.cost_tracker.can_make_request():
@@ -88,7 +88,7 @@ class WatchdogMonitor:
             await self._update_patterns(changes, analysis)
         
         self.last_check = cycle_start
-        logger.debug(f"Monitoring cycle completed in {datetime.now() - cycle_start}")
+        logger.debug(f"Monitoring cycle completed in {datetime.now(timezone.utc) - cycle_start}")
     
     async def _establish_baseline(self):
         """Establish baseline state for monitoring"""
@@ -101,7 +101,7 @@ class WatchdogMonitor:
             )
             
             self.state_buffer.set_baseline(current_state)
-            self.last_check = datetime.now()
+            self.last_check = datetime.now(timezone.utc)
             
             logger.info(f"Baseline established with {len(current_state)} entities")
             
@@ -137,12 +137,22 @@ class StateBuffer:
     
     def get_context(self, lookback_minutes: int = 60) -> Dict:
         """Get recent context for analysis"""
-        cutoff = datetime.now() - timedelta(minutes=lookback_minutes)
-        
-        recent_changes = [
-            change for change in self.changes
-            if datetime.fromisoformat(change.get('last_changed', '')) > cutoff
-        ]
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=lookback_minutes)
+        recent_changes = []
+        for change in self.changes:
+            ts = change.get('last_changed', '')
+            if not ts:
+                continue
+            try:
+                # Normalize 'Z' suffix and parse
+                ts_norm = ts.replace('Z', '+00:00')
+                dt = datetime.fromisoformat(ts_norm)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+            except Exception:
+                continue
+            if dt > cutoff:
+                recent_changes.append(change)
         
         return {
             'baseline': self.baseline,
