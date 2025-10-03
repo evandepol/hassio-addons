@@ -1,13 +1,11 @@
 ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
-# Install packages for monitoring service (Debian-based HA base)
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+# Install packages for monitoring service (Alpine-based HA base)
+RUN apk add --no-cache \
         python3 \
-        python3-pip \
-        python3-aiohttp \
-        python3-venv \
+        py3-pip \
+        py3-aiohttp \
         bash \
         curl \
         jq \
@@ -15,9 +13,7 @@ RUN apt-get update \
         openai \
         pyyaml \
         schedule \
-        python-dateutil \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+        python-dateutil 
 
 # Create directory for monitoring data
 RUN mkdir -p /config/openai-watchdog

@@ -21,6 +21,7 @@ panel_admin: true
 # Service startup configuration
 startup: services
 boot: auto
+startup: services
 
 # Add-on configuration options
 options:
