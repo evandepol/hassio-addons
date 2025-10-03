@@ -11,7 +11,8 @@ RUN apk add --no-cache \
     jq
 
 # Resolve musl/musl-dev mismatch and add build toolchain
-RUN apk upgrade --no-cache musl musl-utils
+RUN apk update
+RUN apk upgrade --no-cache --available musl musl-utils
 RUN apk add --no-cache --virtual .build-deps \
     build-base \
     cmake \
