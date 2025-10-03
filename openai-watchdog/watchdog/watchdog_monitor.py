@@ -3,6 +3,7 @@ Core monitoring loop and state management
 """
 
 import asyncio
+import os
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any, Optional
@@ -81,14 +82,52 @@ class WatchdogMonitor:
             logger.warning(f"Provider selection failed: {e}")
             provider, local_base_url = None, None
 
-        # Analyze changes with selected provider
-        analysis = await self.openai_analyzer.analyze_changes(
-            changes=changes,
-            context=self.state_buffer.get_context(),
-            monitoring_scope=self.config['monitoring_scope'],
-            provider=provider,
-            local_base_url=local_base_url
-        )
+        # Analyze changes with selected provider, recording attempts/errors and applying fallbacks
+        self.cost_tracker.record_attempt(provider or 'online')
+        analysis = None
+        try:
+            analysis = await self.openai_analyzer.analyze_changes(
+                changes=changes,
+                context=self.state_buffer.get_context(),
+                monitoring_scope=self.config['monitoring_scope'],
+                provider=provider,
+                local_base_url=local_base_url
+            )
+        except Exception as e:
+            # Record error for desired provider
+            self.cost_tracker.record_error(provider or 'online', str(e))
+            logger.warning(f"Primary provider failed: {provider or 'online'}; attempting fallback: local -> mock")
+            # Attempt local fallback if not already local
+            if provider != 'local':
+                fb_provider = 'local'
+                self.cost_tracker.record_attempt('local')
+                try:
+                    analysis = await self.openai_analyzer.analyze_changes(
+                        changes=changes,
+                        context=self.state_buffer.get_context(),
+                        monitoring_scope=self.config['monitoring_scope'],
+                        provider='local',
+                        local_base_url=self.config.get('last_local_base_url') or os.getenv('WATCHDOG_LOCAL_BASE_URL') or ''
+                    )
+                except Exception as e_local:
+                    self.cost_tracker.record_error('local', str(e_local))
+                    logger.warning("Local provider failed; falling back to mock")
+                    fb_provider = 'mock'
+                    analysis = await self.openai_analyzer.analyze_changes(
+                        changes=changes,
+                        context=self.state_buffer.get_context(),
+                        monitoring_scope=self.config['monitoring_scope'],
+                        provider='mock'
+                    )
+            else:
+                # If local was desired and failed, fallback to mock
+                self.cost_tracker.record_attempt('mock')
+                analysis = await self.openai_analyzer.analyze_changes(
+                    changes=changes,
+                    context=self.state_buffer.get_context(),
+                    monitoring_scope=self.config['monitoring_scope'],
+                    provider='mock'
+                )
 
         # Reflect the actual provider used (after possible fallback)
         try:

@@ -69,9 +69,9 @@ class CostTracker:
                 'requests': [],
                 # Per-tier rollups
                 'tiers': {
-                    'online': {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None},
-                    'local':  {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None},
-                    'mock':   {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None},
+                    'online': {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None, 'last_attempt': None, 'last_error': None, 'last_error_message': None},
+                    'local':  {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None, 'last_attempt': None, 'last_error': None, 'last_error_message': None},
+                    'mock':   {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None, 'last_attempt': None, 'last_error': None, 'last_error_message': None},
                 }
             }
         
@@ -103,12 +103,12 @@ class CostTracker:
         # Update per-tier rollups
         try:
             tiers = daily_data.setdefault('tiers', {
-                'online': {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None},
-                'local':  {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None},
-                'mock':   {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None},
+                'online': {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None, 'last_attempt': None, 'last_error': None, 'last_error_message': None},
+                'local':  {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None, 'last_attempt': None, 'last_error': None, 'last_error_message': None},
+                'mock':   {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None, 'last_attempt': None, 'last_error': None, 'last_error_message': None},
             })
             if provider not in tiers:
-                tiers[provider] = {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None}
+                tiers[provider] = {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None, 'last_attempt': None, 'last_error': None, 'last_error_message': None}
             tiers[provider]['cost'] += float(estimated_cost or 0.0)
             tiers[provider]['requests'] += 1
             tiers[provider]['tokens'] += int(tokens or 0)
@@ -184,7 +184,10 @@ class CostTracker:
                 'cost': d.get('cost', 0.0),
                 'requests': d.get('requests', 0),
                 'tokens': d.get('tokens', 0),
-                'last_success': d.get('last_success')
+                'last_success': d.get('last_success'),
+                'last_attempt': d.get('last_attempt'),
+                'last_error': d.get('last_error'),
+                'last_error_message': d.get('last_error_message')
             }
 
         return {
@@ -205,3 +208,38 @@ class CostTracker:
             'month_total': month_total,
             'can_make_request': self.can_make_request()
         }
+
+    def record_attempt(self, provider: str):
+        """Record an attempt for a given provider tier."""
+        try:
+            today = datetime.now().strftime('%Y-%m-%d')
+            if today not in self.cost_data['daily_costs']:
+                # Initialize day to ensure tiers exist
+                _ = self.get_daily_usage(today)
+                self.cost_data['daily_costs'][today] = _
+            daily_data = self.cost_data['daily_costs'][today]
+            tiers = daily_data.setdefault('tiers', {})
+            if provider not in tiers:
+                tiers[provider] = {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None, 'last_attempt': None, 'last_error': None, 'last_error_message': None}
+            tiers[provider]['last_attempt'] = datetime.now().isoformat()
+            self._save_cost_data()
+        except Exception as e:
+            logger.debug(f"Failed to record attempt for {provider}: {e}")
+
+    def record_error(self, provider: str, message: str = None):
+        """Record an error for a given provider tier."""
+        try:
+            today = datetime.now().strftime('%Y-%m-%d')
+            if today not in self.cost_data['daily_costs']:
+                _ = self.get_daily_usage(today)
+                self.cost_data['daily_costs'][today] = _
+            daily_data = self.cost_data['daily_costs'][today]
+            tiers = daily_data.setdefault('tiers', {})
+            if provider not in tiers:
+                tiers[provider] = {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None, 'last_attempt': None, 'last_error': None, 'last_error_message': None}
+            tiers[provider]['last_error'] = datetime.now().isoformat()
+            if message:
+                tiers[provider]['last_error_message'] = str(message)[:500]
+            self._save_cost_data()
+        except Exception as e:
+            logger.debug(f"Failed to record error for {provider}: {e}")

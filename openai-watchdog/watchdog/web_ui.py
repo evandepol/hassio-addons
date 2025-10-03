@@ -125,7 +125,10 @@ class StatusWebServer:
               <tr><th>Remaining</th><td>$${(t.remaining_cost || 0).toFixed(4)} / ${t.remaining_requests || 0} requests</td></tr>
             </table>`;
 
-          const fmtTier = (d) => `reqs: ${d.requests||0}, cost: $${(d.cost||0).toFixed(4)}, tokens: ${d.tokens||0}<br/><span class="muted">last success: ${d.last_success ? new Date(d.last_success).toLocaleTimeString() : '-'}</span>`;
+          const fmt = (ts) => ts ? new Date(ts).toLocaleTimeString() : '-';
+          const fmtTier = (d) => `reqs: ${d.requests||0}, cost: $${(d.cost||0).toFixed(4)}, tokens: ${d.tokens||0}`+
+            `<br/><span class="muted">last success: ${fmt(d.last_success)} • last attempt: ${fmt(d.last_attempt)} • last error: ${fmt(d.last_error)}</span>`+
+            (d.last_error_message ? `<br/><span class="muted">error: ${d.last_error_message}</span>` : '');
           document.getElementById('tier_online').innerHTML = fmtTier(tiers.online || {});
           document.getElementById('tier_local').innerHTML = fmtTier(tiers.local || {});
           document.getElementById('tier_mock').innerHTML = fmtTier(tiers.mock || {});
