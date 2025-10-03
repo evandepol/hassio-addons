@@ -75,6 +75,9 @@ class OpenAIWatchdogService:
                 return [str(x).lower() for x in parsed]
         except Exception:
             pass
+        # Try comma-separated list from UI edge cases
+        if ',' in raw:
+            return [x.strip() for x in raw.split(',') if x.strip()]
         # Otherwise treat as single category
         return [raw]
     

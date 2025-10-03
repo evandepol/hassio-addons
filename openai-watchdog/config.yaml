@@ -1,6 +1,6 @@
 name: "OpenAI Watchdog"
 description: "Intelligent Home Assistant monitoring with continuous OpenAI analysis"
-version: "1.0.3"
+version: "1.0.4"
 slug: "openai_watchdog"
 init: false
 
@@ -29,7 +29,13 @@ options:
   check_interval: 30
   insight_threshold: 0.8
   max_daily_api_calls: 1000
-  monitoring_scope: "all"
+  monitoring_scope:
+    - "climate"
+    - "security"
+    - "energy"
+    - "automation_performance"
+    - "device_health"
+    - "patterns"
   notification_service: "persistent_notification"
   enable_learning: true
   cost_limit_daily: 1.00
@@ -40,7 +46,7 @@ schema:
   check_interval: "int(10,300)?"
   insight_threshold: "float(0.5,1.0)?"
   max_daily_api_calls: "int(100,5000)?"
-  monitoring_scope: "str(all|climate|security|energy|automation_performance|device_health|patterns)?"
+  monitoring_scope: "list(climate|security|energy|automation_performance|device_health|patterns)?"
   notification_service: "str?"
   enable_learning: "bool?"
   cost_limit_daily: "float(0.10,10.00)?"
