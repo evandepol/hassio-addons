@@ -201,15 +201,41 @@ class HomeAssistantClient:
         """Send notification through Home Assistant"""
         try:
             session = await self._get_session()
-            
-            payload = {
-                'message': message,
-                'title': title,
-                **kwargs
-            }
-            
+            # Normalize service string into (domain, name)
+            domain = None
+            name = None
+            svc = (service or '').strip()
+            if not svc:
+                logger.error("Notification service not provided")
+                return False
+
+            # Persistent notification is special: domain=persistent_notification, service=create
+            if svc == 'persistent_notification':
+                domain = 'persistent_notification'
+                name = 'create'
+                payload = {
+                    'message': message,
+                    'title': title
+                }
+                if 'notification_id' in kwargs and kwargs['notification_id']:
+                    payload['notification_id'] = kwargs['notification_id']
+            else:
+                if '.' in svc:
+                    domain, name = svc.split('.', 1)
+                else:
+                    # Assume notify domain if only a target name is provided
+                    domain, name = 'notify', svc
+
+                payload = {
+                    'message': message,
+                    'title': title,
+                    **kwargs
+                }
+
+            endpoint = f'{self.url}/api/services/{domain}/{name}'
+
             async with session.post(
-                f'{self.url}/api/services/notify/{service}',
+                endpoint,
                 headers=self.headers,
                 json=payload
             ) as response:
@@ -217,7 +243,8 @@ class HomeAssistantClient:
                     logger.info(f"Notification sent via {service}")
                     return True
                 else:
-                    logger.error(f"Failed to send notification: {response.status}")
+                    body = await response.text()
+                    logger.error(f"Failed to send notification via {service}: {response.status} - {body[:200]}")
                     return False
                     
         except Exception as e:
