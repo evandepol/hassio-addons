@@ -207,3 +207,10 @@ When your changes are ready:
 2. Update CHANGELOG.md
 3. Create PR with production version bump
 4. Test upgrade path from previous version
+
+## Supervisor refresh policy (version bumps)
+
+- The Home Assistant Supervisor caches add-on metadata and will not detect changes unless the `version` in the add-on's `config.yaml` changes.
+- Always bump the `version` in `openai-watchdog/config.yaml` for any change that should be visible in the Supervisor (code, Dockerfile, run.sh, schema/docs).
+- Use a simple patch bump during active development (e.g., 1.0.13 → 1.0.14).
+- Do not commit dev timestamp versions; keep those in `.dev-version` only.
