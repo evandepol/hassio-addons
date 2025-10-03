@@ -1,6 +1,6 @@
 name: "OpenAI Watchdog"
 description: "Intelligent Home Assistant monitoring with continuous OpenAI analysis"
-version: "1.0.1"
+version: "1.0.2"
 slug: "openai_watchdog"
 init: false
 
@@ -19,7 +19,6 @@ panel_title: "OpenAI Watchdog"
 panel_admin: true
 
 # Service startup configuration
-startup: services
 boot: auto
 startup: services
 

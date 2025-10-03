@@ -161,7 +161,7 @@ class HomeAssistantClient:
         
         return False
     
-    async def send_notification(self, service: str, message: str, title: str = "Claude Watchdog", **kwargs):
+    async def send_notification(self, service: str, message: str, title: str = "OpenAI Watchdog", **kwargs):
         """Send notification through Home Assistant"""
         try:
             session = await self._get_session()

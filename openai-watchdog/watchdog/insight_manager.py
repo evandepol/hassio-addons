@@ -122,7 +122,7 @@ class InsightManager:
     async def _send_notification(self, insight: Dict[str, Any]):
         """Send notification for important insights"""
         try:
-            title = f"Claude Watchdog: {insight['type'].title()} Alert"
+            title = f"OpenAI Watchdog: {insight['type'].title()} Alert"
             message = f"{insight['summary']}\n\nConfidence: {insight['confidence']:.0%}\nTime: {insight['timestamp']}"
             
             # Send via configured notification service
@@ -132,7 +132,7 @@ class InsightManager:
                     service="persistent_notification",
                     message=message,
                     title=title,
-                    notification_id=f"claude_watchdog_{insight['id']}"
+                    notification_id=f"openai_watchdog_{insight['id']}"
                 )
             else:
                 # Use regular notification service

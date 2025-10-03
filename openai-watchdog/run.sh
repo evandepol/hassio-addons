@@ -57,7 +57,8 @@ setup_ha_access() {
     bashio::log.info "Setting up Home Assistant API access..."
     
     # Get Home Assistant details
-    export HASSIO_TOKEN="${HASSIO_TOKEN}"
+    # Supervisor injects SUPERVISOR_TOKEN; keep HASSIO_TOKEN for backward compat
+    export HASSIO_TOKEN="${SUPERVISOR_TOKEN:-$HASSIO_TOKEN}"
     export HA_URL="http://supervisor/core"
     
     # Test API connectivity

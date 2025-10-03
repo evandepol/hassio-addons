@@ -29,8 +29,8 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-class ClaudeWatchdogService:
-    """Main service class for Claude Watchdog"""
+class OpenAIWatchdogService:
+    """Main service class for OpenAI Watchdog"""
     
     def __init__(self):
         self.running = False
@@ -140,7 +140,7 @@ class ClaudeWatchdogService:
     
     async def stop(self):
         """Stop the monitoring service"""
-        logger.info("Stopping Claude Watchdog service...")
+        logger.info("Stopping OpenAI Watchdog service...")
         self.running = False
         
         if self.monitor:
@@ -149,7 +149,7 @@ class ClaudeWatchdogService:
 # Service entry point
 async def main():
     """Main entry point for the service"""
-    service = ClaudeWatchdogService()
+    service = OpenAIWatchdogService()
     
     try:
         await service.start()
