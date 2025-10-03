@@ -58,18 +58,18 @@ class HomeAssistantClient:
     async def get_recent_changes(self, since: Optional[datetime] = None, scope: List[str] = None) -> List[Dict]:
         """Get recent state changes from history"""
         if since is None:
-            since = datetime.utcnow() - timedelta(minutes=5)
+            from datetime import timezone
+            since = datetime.now(timezone.utc) - timedelta(minutes=5)
         
         try:
             # Use history API to get changes
             session = await self._get_session()
-            # Use UTC Zulu time without microseconds and URL-encode
-            from urllib.parse import quote
-            since_iso = since.replace(microsecond=0).isoformat() + 'Z'
-            since_param = quote(since_iso, safe='')
+            # Use Zulu UTC ISO format without microseconds (e.g., 2025-10-02T20:54:00Z)
+            from datetime import timezone
+            since_iso = since.astimezone(timezone.utc).replace(microsecond=0).strftime('%Y-%m-%dT%H:%M:%SZ')
             
             async with session.get(
-                f'{self.url}/api/history/period/{since_param}',
+                f'{self.url}/api/history/period/{since_iso}?minimal_response=true',
                 headers=self.headers
             ) as response:
                 if response.status == 200:
@@ -88,6 +88,10 @@ class HomeAssistantClient:
     def _filter_entities_by_scope(self, entities: List[Dict], scope: List[str]) -> List[Dict]:
         """Filter entities based on monitoring scope"""
         if not scope:
+            return entities
+        
+        # If patterns analysis is requested, include all entities
+        if 'patterns' in scope:
             return entities
         
         filtered = []
@@ -110,8 +114,12 @@ class HomeAssistantClient:
             
             if 'automation_performance' in scope and domain in ['automation', 'script']:
                 filtered.append(entity)
+            
+            if 'device_health' in scope and domain in ['sensor', 'binary_sensor']:
+                filtered.append(entity)
         
-        return filtered
+        # If filtering produced no entities, fall back to all to avoid empty baseline
+        return filtered if filtered else entities
     
     def _extract_changes_from_history(self, history: List[List[Dict]], scope: List[str] = None) -> List[Dict]:
         """Extract meaningful changes from history data"""
