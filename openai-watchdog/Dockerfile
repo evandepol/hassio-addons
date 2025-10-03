@@ -16,8 +16,7 @@ RUN apk add --no-cache --virtual .build-deps \
     build-base \
     cmake \
     ninja \
-    pkgconf \
-    musl-dev
+    pkgconf
 
 # Configure llama.cpp build (CPU-only) and prefer prebuilt wheels when available
 ENV CMAKE_ARGS="-DLLAMA_CUBLAS=OFF -DLLAMA_METAL=OFF -DLLAMA_OPENBLAS=OFF -DLLAMA_BLAS=OFF"
