@@ -28,6 +28,13 @@ class OpenAIAnalyzer:
         self.model = model
         self.insight_threshold = insight_threshold
         self.client = None
+        # API audit log path
+        self.data_dir = os.getenv('OPENAI_WATCHDOG_DATA', '/config/openai-watchdog')
+        self.api_log_path = os.path.join(self.data_dir, 'logs', 'openai_api.log')
+        try:
+            os.makedirs(os.path.dirname(self.api_log_path), exist_ok=True)
+        except Exception:
+            pass
         self._initialize_client()
         
         
@@ -74,11 +81,20 @@ class OpenAIAnalyzer:
         
         if not self.client:
             logger.warning("OpenAI client not initialized, using mock analysis")
-            return await self._mock_openai_analysis(changes)
+            mock_result = await self._mock_openai_analysis(changes)
+            # Log mock call for visibility
+            self._log_api_call(
+                prompt="[MOCK] No API key/client; generated mock analysis based on changes",
+                response_text=json.dumps(mock_result) if isinstance(mock_result, dict) else str(mock_result),
+                usage=None,
+                cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'mock'}
+            )
+            return mock_result
         
         try:
             # Build analysis prompt based on scope and changes
             prompt = self._build_analysis_prompt(changes, context, monitoring_scope)
+            logger.debug("OpenAI prompt (model=%s): %s", self.model, prompt)
             
             # Make OpenAI API call
             response = await self.client.chat.completions.create(
@@ -102,12 +118,27 @@ class OpenAIAnalyzer:
             structured_result = self._structure_analysis(analysis_text, changes)
             structured_result['cost_info'] = cost_info
             
+            # Log API call (prompt + response + usage/cost)
+            self._log_api_call(
+                prompt=prompt,
+                response_text=analysis_text,
+                usage=usage,
+                cost_info=cost_info
+            )
+            
             return structured_result
             
         except Exception as e:
             logger.error(f"OpenAI API error: {e}")
             # Fallback to mock analysis
-            return await self._mock_openai_analysis(changes)
+            mock_result = await self._mock_openai_analysis(changes)
+            self._log_api_call(
+                prompt="[MOCK-FALLBACK] OpenAI API error; generated mock analysis",
+                response_text=json.dumps(mock_result) if isinstance(mock_result, dict) else str(mock_result),
+                usage=None,
+                cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'mock-fallback'}
+            )
+            return mock_result
     
     def _calculate_cost(self, usage) -> Dict[str, Any]:
         """Calculate API cost based on token usage"""
@@ -299,6 +330,35 @@ Be concise but thorough in your analysis.
             'analysis_timestamp': datetime.now().isoformat(),
             'changes_analyzed': len(changes)
         }
+
+    def _log_api_call(self, prompt: str, response_text: str, usage: Optional[Any], cost_info: Dict[str, Any]):
+        """Write a structured log entry for the API call (prompt + response)."""
+        try:
+            # Truncate very large strings to keep logs manageable
+            def trunc(s, max_len=12000):
+                try:
+                    return s if len(s) <= max_len else s[:max_len] + "... [truncated]"
+                except Exception:
+                    return str(s)
+            entry = {
+                'timestamp': datetime.utcnow().isoformat() + 'Z',
+                'model': self.model,
+                'prompt': trunc(prompt or ''),
+                'response': trunc(response_text or ''),
+                'usage': None if usage is None else {
+                    'prompt_tokens': getattr(usage, 'prompt_tokens', None),
+                    'completion_tokens': getattr(usage, 'completion_tokens', None),
+                    'total_tokens': getattr(usage, 'total_tokens', None),
+                },
+                'cost': cost_info,
+            }
+            # Write JSONL entry
+            with open(self.api_log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(entry) + '\n')
+            # Also emit a concise debug log
+            logger.debug("OpenAI response (model=%s, tokens=%s): %s", self.model, entry.get('usage'), trunc(response_text, 2000))
+        except Exception as e:
+            logger.warning(f"Failed to write OpenAI API log: {e}")
     
     def _get_climate_template(self) -> str:
         return """
