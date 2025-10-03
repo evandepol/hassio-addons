@@ -64,13 +64,18 @@ class HomeAssistantClient:
         try:
             # Use history API to get changes
             session = await self._get_session()
-            # Use Zulu UTC ISO format without microseconds (e.g., 2025-10-02T20:54:00Z)
+            # Use timezone-aware ISO format (e.g., 2025-10-02T20:54:00+00:00) and pass via query param for safe encoding
             from datetime import timezone
-            since_iso = since.astimezone(timezone.utc).replace(microsecond=0).strftime('%Y-%m-%dT%H:%M:%SZ')
+            since_iso = since.astimezone(timezone.utc).replace(microsecond=0).isoformat()
+            params = {
+                'start_time': since_iso,
+                'minimal_response': '1'
+            }
             
             async with session.get(
-                f'{self.url}/api/history/period/{since_iso}?minimal_response=true',
-                headers=self.headers
+                f'{self.url}/api/history/period',
+                headers=self.headers,
+                params=params
             ) as response:
                 if response.status == 200:
                     history = await response.json()
@@ -78,7 +83,13 @@ class HomeAssistantClient:
                     logger.debug(f"Found {len(changes)} state changes since {since_iso}")
                     return changes
                 else:
-                    logger.error(f"Failed to get history: {response.status}")
+                    # Log status and timestamp form for troubleshooting; avoid leaking headers
+                    try:
+                        snippet = await response.text()
+                        snippet = snippet[:200]
+                    except Exception:
+                        snippet = ''
+                    logger.error(f"Failed to get history: {response.status} (start_time={since_iso}) {snippet}")
                     return []
                     
         except Exception as e:
