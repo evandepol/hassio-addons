@@ -4,7 +4,9 @@ Lightweight ingress web UI server for OpenAI Watchdog
 
 import os
 import logging
+import aiohttp
 from aiohttp import web
+from .local_server import LocalServerManager
 
 
 class StatusWebServer:
@@ -99,6 +101,16 @@ class StatusWebServer:
     </div>
 
     <div class="card">
+      <h3>Local LLM</h3>
+      <div class="row">
+        <div>
+          <button id="btn_local_status">Check status</button>
+        </div>
+      </div>
+      <div id="local_status" class="muted">-</div>
+    </div>
+
+    <div class="card">
       <h3>Recent insights (24h)</h3>
       <div id="insights">Loading…</div>
     </div>
@@ -150,6 +162,26 @@ class StatusWebServer:
         }
       }
       load();
+      document.getElementById('btn_local_status').addEventListener('click', async () => {
+        const out = document.getElementById('local_status');
+        out.textContent = 'Checking…';
+        try {
+          const res = await fetch('api/local/status');
+          const data = await res.json();
+          if (!data.base_url) {
+            out.textContent = 'Local base URL not configured.';
+            return;
+          }
+          const ok = data.healthy ? 'Healthy' : 'Unreachable';
+          const models = (data.models || []).map(m => m.id || m.name || JSON.stringify(m)).join(', ');
+          out.innerHTML = `<div><strong>Status:</strong> ${ok}</div>`+
+            `<div><strong>Base URL:</strong> ${data.base_url}</div>`+
+            `<div><strong>Models:</strong> ${models || '-'}</div>`+
+            (data.error ? `<div class="muted">Error: ${data.error}</div>` : '');
+        } catch (e) {
+          out.textContent = 'Failed to query local status.';
+        }
+      });
       // Auto-refresh periodically to reflect new insights and tier changes
     setInterval(load, 10000);
     </script>
@@ -171,6 +203,34 @@ class StatusWebServer:
                 'recent_insights': self.insight_manager.get_recent_insights(24) if self.insight_manager else []
             })
 
+        async def local_status_handler(request):
+            # Determine base URL: prefer dynamic env (embedded/external), fallback to last seen config
+            base_url = os.getenv('WATCHDOG_LOCAL_BASE_URL', '').strip() or (self.config.get('last_local_base_url') or '')
+            result = {'base_url': base_url or None, 'healthy': False, 'models': [], 'error': None}
+            if not base_url:
+                return web.json_response(result)
+            try:
+                mgr = LocalServerManager(base_url)
+                healthy = await mgr.is_healthy()
+                result['healthy'] = healthy
+                # Try to fetch models list from OpenAI-compatible /v1/models
+                url = base_url.rstrip('/') + '/v1/models'
+                timeout = aiohttp.ClientTimeout(total=2)
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.get(url) as resp:
+                        if resp.status == 200:
+                            js = await resp.json()
+                            # Normalize
+                            if isinstance(js, dict) and 'data' in js and isinstance(js['data'], list):
+                                result['models'] = js['data']
+                            else:
+                                result['models'] = js if isinstance(js, list) else []
+                        else:
+                            result['error'] = f"HTTP {resp.status}"
+            except Exception as e:
+                result['error'] = str(e)
+            return web.json_response(result)
+
         async def insights_handler(request):
             return web.json_response({
                 'insights': self.insight_manager.get_recent_insights(168) if self.insight_manager else []
@@ -183,6 +243,7 @@ class StatusWebServer:
             web.get('/', index_handler),
             web.get('/index.html', index_handler),
             web.get('/api/status', status_handler),
+    web.get('/api/local/status', local_status_handler),
             web.get('/api/insights', insights_handler),
         ])
 

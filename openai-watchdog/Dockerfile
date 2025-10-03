@@ -9,12 +9,19 @@ RUN apk add --no-cache \
         bash \
         curl \
         jq \
+    && apk add --no-cache --virtual .build-deps \
+        build-base \
+        cmake \
+        ninja \
+        pkgconf \
+    && export CMAKE_ARGS="-DLLAMA_CUBLAS=OFF -DLLAMA_METAL=OFF -DLLAMA_OPENBLAS=OFF -DLLAMA_BLAS=OFF" \
     && pip3 install --no-cache-dir \
         openai \
         pyyaml \
         schedule \
         python-dateutil \
-        llama-cpp-python[server]==0.2.90
+        llama-cpp-python[server]==0.2.90 \
+    && apk del .build-deps
 
 # Create directory for monitoring data
 RUN mkdir -p /config/openai-watchdog

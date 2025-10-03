@@ -1,6 +1,6 @@
 name: "OpenAI Watchdog"
 description: "Intelligent Home Assistant monitoring with continuous OpenAI analysis"
-version: "1.0.24"
+version: "1.0.25"
 slug: "openai_watchdog"
 init: false
 
