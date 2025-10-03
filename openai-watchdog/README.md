@@ -58,6 +58,7 @@ OpenAI Watchdog is a revolutionary Home Assistant add-on that provides:
 | `cost_limit_daily` | Maximum daily cost in USD | `1.00` |
 | `notification_service` | HA notification service to use | `persistent_notification` |
 | `enable_learning` | Enable pattern learning | `true` |
+| `log_api_payloads_to_stdout` | Log OpenAI prompt/response to add-on log | `false` |
 
 ### Monitoring Scope
 
@@ -85,6 +86,7 @@ monitoring_scope:
 cost_limit_daily: 1.00
 notification_service: "notify"
 enable_learning: true
+log_api_payloads_to_stdout: false
 ```
 
 ## Setting Up OpenAI API Credentials

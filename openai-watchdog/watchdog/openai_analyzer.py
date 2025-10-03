@@ -31,6 +31,7 @@ class OpenAIAnalyzer:
         # API audit log path
         self.data_dir = os.getenv('OPENAI_WATCHDOG_DATA', '/config/openai-watchdog')
         self.api_log_path = os.path.join(self.data_dir, 'logs', 'openai_api.log')
+        self.log_api_stdout = (os.getenv('WATCHDOG_LOG_API_STDOUT', 'false').lower() == 'true')
         try:
             os.makedirs(os.path.dirname(self.api_log_path), exist_ok=True)
         except Exception:
@@ -369,6 +370,10 @@ Be concise but thorough in your analysis.
                 f.write(json.dumps(entry) + '\n')
             # Also emit a concise debug log
             logger.debug("OpenAI response (model=%s, tokens=%s): %s", self.model, entry.get('usage'), trunc(response_text, 2000))
+            # Optionally emit prompt/response to stdout for quick debugging
+            if self.log_api_stdout:
+                logger.info("OpenAI prompt: %s", trunc(prompt, 4000))
+                logger.info("OpenAI response: %s", trunc(response_text, 4000))
         except Exception as e:
             logger.warning(f"Failed to write OpenAI API log: {e}")
     
