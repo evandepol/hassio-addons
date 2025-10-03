@@ -30,6 +30,7 @@ init_environment() {
     local accept_model_license=$(bashio::config 'accept_model_license' 'false')
     local local_model_url=$(bashio::config 'local_model_url' '')
     local local_model_sha256=$(bashio::config 'local_model_sha256' '')
+    local huggingface_token=$(bashio::config 'huggingface_token' '')
     local check_interval=$(bashio::config 'check_interval' '30')
     local insight_threshold=$(bashio::config 'insight_threshold' '0.8')
     local max_daily_calls=$(bashio::config 'max_daily_api_calls' '1000')
@@ -65,6 +66,7 @@ init_environment() {
     export WATCHDOG_ACCEPT_MODEL_LICENSE="$accept_model_license"
     export WATCHDOG_LOCAL_MODEL_URL="$local_model_url"
     export WATCHDOG_LOCAL_MODEL_SHA256="$local_model_sha256"
+    export HUGGINGFACE_TOKEN="$huggingface_token"
     export WATCHDOG_CHECK_INTERVAL="$check_interval"
     export WATCHDOG_INSIGHT_THRESHOLD="$insight_threshold"
     export WATCHDOG_MAX_DAILY_CALLS="$max_daily_calls"
@@ -133,13 +135,29 @@ init_environment() {
                 mkdir -p "$(dirname "$WATCHDOG_LOCAL_MODEL_PATH")"
                 export WATCHDOG_LOCAL_MODEL_URL_USED="$local_model_url"
                 DOWNLOAD_OK=0
+                HDR_AUTH=""
+                if [ -n "$huggingface_token" ]; then
+                    HDR_AUTH="Authorization: Bearer $huggingface_token"
+                fi
                 if command -v curl >/dev/null 2>&1; then
-                    if curl -fL --retry 3 --retry-delay 2 -o "$WATCHDOG_LOCAL_MODEL_PATH" "$local_model_url"; then
-                        DOWNLOAD_OK=1
+                    if [ -n "$HDR_AUTH" ]; then
+                        if curl -fL --retry 3 --retry-delay 2 -H "$HDR_AUTH" -o "$WATCHDOG_LOCAL_MODEL_PATH" "$local_model_url"; then
+                            DOWNLOAD_OK=1
+                        fi
+                    else
+                        if curl -fL --retry 3 --retry-delay 2 -o "$WATCHDOG_LOCAL_MODEL_PATH" "$local_model_url"; then
+                            DOWNLOAD_OK=1
+                        fi
                     fi
                 else
-                    if wget -q --tries=3 -O "$WATCHDOG_LOCAL_MODEL_PATH" "$local_model_url"; then
-                        DOWNLOAD_OK=1
+                    if [ -n "$HDR_AUTH" ]; then
+                        if wget --header="$HDR_AUTH" -q --tries=3 -O "$WATCHDOG_LOCAL_MODEL_PATH" "$local_model_url"; then
+                            DOWNLOAD_OK=1
+                        fi
+                    else
+                        if wget -q --tries=3 -O "$WATCHDOG_LOCAL_MODEL_PATH" "$local_model_url"; then
+                            DOWNLOAD_OK=1
+                        fi
                     fi
                 fi
                 if [ "$DOWNLOAD_OK" -ne 1 ]; then

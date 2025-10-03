@@ -1,6 +1,6 @@
 name: "OpenAI Watchdog"
 description: "Intelligent Home Assistant monitoring with continuous OpenAI analysis"
-version: "1.0.44"
+version: "1.0.45"
 slug: "openai_watchdog"
 init: false
 
@@ -46,6 +46,7 @@ options:
   # If left empty and local_model is llama-3.2-3b, a sensible default URL will be used.
   local_model_url: ""
   local_model_sha256: ""
+  huggingface_token: ""
   check_interval: 30
   insight_threshold: 0.8
   max_daily_api_calls: 1000
@@ -74,6 +75,7 @@ schema:
   accept_model_license: "bool?"
   local_model_url: "str?"
   local_model_sha256: "str?"
+  huggingface_token: "password?"
   check_interval: "int(10,300)?"
   insight_threshold: "float(0.5,1.0)?"
   max_daily_api_calls: "int(100,5000)?"
