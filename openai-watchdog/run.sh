@@ -15,6 +15,7 @@ init_environment() {
     
     # Read configuration from Home Assistant
     local openai_api_key=$(bashio::config 'openai_api_key' '')
+    local openai_base_url=$(bashio::config 'openai_base_url' '')
     local openai_model=$(bashio::config 'openai_model' 'gpt-4o-mini')
     local check_interval=$(bashio::config 'check_interval' '30')
     local insight_threshold=$(bashio::config 'insight_threshold' '0.8')
@@ -27,6 +28,7 @@ init_environment() {
     
     # Export configuration as environment variables
     export OPENAI_API_KEY="$openai_api_key"
+    export OPENAI_BASE_URL="$openai_base_url"
     export OPENAI_MODEL="$openai_model"
     export WATCHDOG_CHECK_INTERVAL="$check_interval"
     export WATCHDOG_INSIGHT_THRESHOLD="$insight_threshold"
@@ -63,6 +65,9 @@ init_environment() {
     fi
     
     bashio::log.info "OpenAI Watchdog configured with model: $openai_model"
+    if [ -n "$openai_base_url" ]; then
+        bashio::log.info "Using custom OpenAI base URL: $openai_base_url"
+    fi
     bashio::log.info "Check interval: ${check_interval}s, Cost limit: \$${cost_limit}/day"
 }
 

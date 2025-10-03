@@ -5,12 +5,18 @@ OpenAI analysis engine for interpreting Home Assistant state changes
 import os
 import json
 import logging
+import re
 from typing import Dict, List, Any, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 try:
     from openai import AsyncOpenAI
 except ImportError:
     AsyncOpenAI = None
+try:
+    # Local mock utilities
+    from .mock_analysis import mock_openai_analysis
+except Exception:
+    mock_openai_analysis = None
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +38,10 @@ class OpenAIAnalyzer:
         self.data_dir = os.getenv('OPENAI_WATCHDOG_DATA', '/config/openai-watchdog')
         self.api_log_path = os.path.join(self.data_dir, 'logs', 'openai_api.log')
         self.log_api_stdout = (os.getenv('WATCHDOG_LOG_API_STDOUT', 'false').lower() == 'true')
+        # Backoff state for rate limits/errors
+        self.backoff_until: Optional[datetime] = None
+        self.backoff_seconds: int = int(os.getenv('WATCHDOG_BACKOFF_INITIAL_SECONDS', '60'))
+        self.backoff_max_seconds: int = int(os.getenv('WATCHDOG_BACKOFF_MAX_SECONDS', '7200'))
         try:
             os.makedirs(os.path.dirname(self.api_log_path), exist_ok=True)
         except Exception:
@@ -62,7 +72,12 @@ class OpenAIAnalyzer:
             return
             
         try:
-            self.client = AsyncOpenAI(api_key=api_key)
+            base_url = os.getenv('OPENAI_BASE_URL')
+            if base_url:
+                self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+                logger.info(f"Initialized OpenAI client with model: {self.model} (base_url={base_url})")
+            else:
+                self.client = AsyncOpenAI(api_key=api_key)
             logger.info(f"Initialized OpenAI client with model: {self.model}")
         except Exception as e:
             logger.error(f"Failed to initialize OpenAI client: {e}")
@@ -80,9 +95,37 @@ class OpenAIAnalyzer:
         if not changes:
             return {'requires_attention': False, 'insights': []}
         
+        # If we're in a backoff window, skip real API calls and use mock
+        if self._is_in_backoff():
+            remaining = int((self.backoff_until - datetime.utcnow()).total_seconds()) if self.backoff_until else 0
+            if mock_openai_analysis is not None:
+                mock_result = await mock_openai_analysis(self.model, changes)
+            else:
+                mock_result = {'requires_attention': False, 'insights': [], 'confidence': 0.7, 'processed_changes': len(changes), 'cost_info': {'model': self.model, 'estimated_tokens': 0, 'estimated_cost': 0.0, 'input_tokens': 0, 'output_tokens': 0, 'input_cost': 0.0, 'output_cost': 0.0}}
+            # Insert a rate limit/backoff informational insight
+            try:
+                mock_result.setdefault('insights', []).insert(0, {
+                    'type': 'rate_limit',
+                    'message': f'OpenAI calls paused due to backoff. Resuming in ~{remaining}s.',
+                    'confidence': 0.95
+                })
+            except Exception:
+                pass
+            mock_result['requires_attention'] = mock_result.get('requires_attention', False)
+            self._log_api_call(
+                prompt="[BACKOFF] Skipping OpenAI call; using mock analysis",
+                response_text=json.dumps(mock_result) if isinstance(mock_result, dict) else str(mock_result),
+                usage=None,
+                cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'backoff-mock'}
+            )
+            return mock_result
+
         if not self.client:
             logger.warning("OpenAI client not initialized, using mock analysis")
-            mock_result = await self._mock_openai_analysis(changes)
+            if mock_openai_analysis is not None:
+                mock_result = await mock_openai_analysis(self.model, changes)
+            else:
+                mock_result = {'requires_attention': False, 'insights': [], 'confidence': 0.7, 'processed_changes': len(changes), 'cost_info': {'model': self.model, 'estimated_tokens': 0, 'estimated_cost': 0.0, 'input_tokens': 0, 'output_tokens': 0, 'input_cost': 0.0, 'output_cost': 0.0}}
             # Log mock call for visibility
             self._log_api_call(
                 prompt="[MOCK] No API key/client; generated mock analysis based on changes",
@@ -132,7 +175,10 @@ class OpenAIAnalyzer:
         except Exception as e:
             logger.error(f"OpenAI API error: {e}")
             # Fallback to mock analysis
-            mock_result = await self._mock_openai_analysis(changes)
+            if mock_openai_analysis is not None:
+                mock_result = await mock_openai_analysis(self.model, changes)
+            else:
+                mock_result = {'requires_attention': False, 'insights': [], 'confidence': 0.7, 'processed_changes': len(changes), 'cost_info': {'model': self.model, 'estimated_tokens': 0, 'estimated_cost': 0.0, 'input_tokens': 0, 'output_tokens': 0, 'input_cost': 0.0, 'output_cost': 0.0}}
             # If unauthorized, attach a clear insight message
             try:
                 msg = str(e)
@@ -143,6 +189,16 @@ class OpenAIAnalyzer:
                         'confidence': 0.99
                     })
                     mock_result['requires_attention'] = True
+                # Rate limit handling (429 / rate_limit_exceeded): apply backoff
+                if '429' in msg or 'rate_limit_exceeded' in msg or 'Rate limit' in msg:
+                    wait_s = self._parse_wait_seconds(msg) or self.backoff_seconds
+                    self._apply_backoff(wait_s)
+                    resume_in = int((self.backoff_until - datetime.utcnow()).total_seconds()) if self.backoff_until else wait_s
+                    mock_result.setdefault('insights', []).insert(0, {
+                        'type': 'rate_limit',
+                        'message': f'OpenAI rate limit reached. Pausing real analysis for ~{resume_in}s.',
+                        'confidence': 0.9
+                    })
             except Exception:
                 pass
             self._log_api_call(
@@ -152,6 +208,37 @@ class OpenAIAnalyzer:
                 cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'mock-fallback'}
             )
             return mock_result
+
+    def _is_in_backoff(self) -> bool:
+        try:
+            return self.backoff_until is not None and datetime.utcnow() < self.backoff_until
+        except Exception:
+            return False
+
+    def _apply_backoff(self, seconds: int):
+        try:
+            seconds = max(1, int(seconds))
+        except Exception:
+            seconds = self.backoff_seconds
+        self.backoff_until = datetime.utcnow() + timedelta(seconds=seconds)
+        # Exponential backoff for next time, up to cap
+        self.backoff_seconds = min(self.backoff_seconds * 2, self.backoff_max_seconds)
+        logger.warning(f"Applying backoff for {seconds}s (next backoff step {self.backoff_seconds}s, until {self.backoff_until} UTC)")
+
+    def _parse_wait_seconds(self, message: str) -> Optional[int]:
+        """Parse 'try again in 3h20m0.959s' style hints from error text to seconds."""
+        try:
+            # Look for patterns like 'in 3h20m0.959s' or 'in 15m30s' or 'in 45s'
+            m = re.search(r"in\s+((?:(\d+)h)?(?:(\d+)m)?(?:(\d+(?:\.\d+)?)s)?)", message, re.IGNORECASE)
+            if not m:
+                return None
+            hours = int(m.group(2)) if m.group(2) else 0
+            minutes = int(m.group(3)) if m.group(3) else 0
+            seconds = float(m.group(4)) if m.group(4) else 0.0
+            total = int(hours * 3600 + minutes * 60 + seconds)
+            return max(total, 1)
+        except Exception:
+            return None
     
     def _calculate_cost(self, usage) -> Dict[str, Any]:
         """Calculate API cost based on token usage"""
@@ -241,53 +328,6 @@ Be concise but thorough in your analysis.
         
         return prompt
     
-    async def _mock_openai_analysis(self, changes: List[Dict]) -> Dict[str, Any]:
-        """Mock OpenAI analysis for development/testing"""
-        # TODO: Replace with actual OpenAI API call
-        
-        # Simple mock analysis based on change patterns
-        insights = []
-        requires_attention = False
-        confidence = 0.7
-        
-        # Check for concerning patterns
-        security_changes = [c for c in changes if 'door' in c.get('entity_id', '') or 'lock' in c.get('entity_id', '')]
-        if security_changes:
-            insights.append({
-                'type': 'security',
-                'message': f'Security activity detected: {len(security_changes)} security-related changes',
-                'confidence': 0.8,
-                'entities': [c.get('entity_id') for c in security_changes[:3]]
-            })
-            requires_attention = True
-        
-        energy_changes = [c for c in changes if 'power' in c.get('entity_id', '') or 'energy' in c.get('entity_id', '')]
-        if energy_changes:
-            insights.append({
-                'type': 'energy',
-                'message': f'Energy monitoring: {len(energy_changes)} power-related changes',
-                'confidence': 0.6,
-                'entities': [c.get('entity_id') for c in energy_changes[:3]]
-            })
-        
-        # Mock cost info
-        cost_info = {
-            'model': self.model,
-            'estimated_tokens': len(str(changes)) // 4,  # Rough token estimate
-            'estimated_cost': 0.001,  # Mock cost
-            'input_tokens': 100,
-            'output_tokens': 50,
-            'input_cost': 0.0007,
-            'output_cost': 0.0003
-        }
-        
-        return {
-            'requires_attention': requires_attention,
-            'insights': insights,
-            'confidence': confidence,
-            'processed_changes': len(changes),
-            'cost_info': cost_info
-        }
     
     def _structure_analysis(self, analysis_result, changes: List[Dict]) -> Dict[str, Any]:
         """Structure the analysis result into a standard format"""
