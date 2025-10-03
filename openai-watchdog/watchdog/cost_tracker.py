@@ -66,7 +66,13 @@ class CostTracker:
                 'total_cost': 0.0,
                 'request_count': 0,
                 'tokens_used': 0,
-                'requests': []
+                'requests': [],
+                # Per-tier rollups
+                'tiers': {
+                    'online': {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None},
+                    'local':  {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None},
+                    'mock':   {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None},
+                }
             }
         
         daily_data = self.cost_data['daily_costs'][today]
@@ -75,6 +81,8 @@ class CostTracker:
         estimated_cost = cost_info.get('estimated_cost', 0.0)
         tokens = cost_info.get('estimated_tokens', 0)
         model = cost_info.get('model', 'unknown')
+        provider = cost_info.get('provider', 'online')
+        success = bool(cost_info.get('success', True))
         
         # Update daily totals
         daily_data['total_cost'] += estimated_cost
@@ -82,12 +90,32 @@ class CostTracker:
         daily_data['tokens_used'] += tokens
         
         # Record individual request
+        ts = datetime.now().isoformat()
         daily_data['requests'].append({
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': ts,
             'model': model,
             'tokens': tokens,
-            'cost': estimated_cost
+            'cost': estimated_cost,
+            'provider': provider,
+            'success': success,
         })
+
+        # Update per-tier rollups
+        try:
+            tiers = daily_data.setdefault('tiers', {
+                'online': {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None},
+                'local':  {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None},
+                'mock':   {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None},
+            })
+            if provider not in tiers:
+                tiers[provider] = {'cost': 0.0, 'requests': 0, 'tokens': 0, 'last_success': None}
+            tiers[provider]['cost'] += float(estimated_cost or 0.0)
+            tiers[provider]['requests'] += 1
+            tiers[provider]['tokens'] += int(tokens or 0)
+            if success:
+                tiers[provider]['last_success'] = ts
+        except Exception as e:
+            logger.debug(f"Failed to update per-tier usage: {e}")
         
         # Keep only last 100 requests per day
         if len(daily_data['requests']) > 100:
@@ -148,6 +176,17 @@ class CostTracker:
             if days_ago <= 30:
                 month_total += data.get('total_cost', 0.0)
         
+        # Build per-tier today view with sane defaults
+        tiers = daily_usage.get('tiers', {})
+        def tier(name):
+            d = tiers.get(name, {})
+            return {
+                'cost': d.get('cost', 0.0),
+                'requests': d.get('requests', 0),
+                'tokens': d.get('tokens', 0),
+                'last_success': d.get('last_success')
+            }
+
         return {
             'today': {
                 'cost': daily_usage['total_cost'],
@@ -156,6 +195,11 @@ class CostTracker:
                 'limit_requests': self.max_calls,
                 'remaining_cost': max(0, self.daily_limit - daily_usage['total_cost']),
                 'remaining_requests': max(0, self.max_calls - daily_usage['request_count'])
+            },
+            'tiers': {
+                'online': tier('online'),
+                'local': tier('local'),
+                'mock': tier('mock'),
             },
             'week_total': week_total,
             'month_total': month_total,

@@ -82,6 +82,20 @@ class StatusWebServer:
     <div class="card">
       <h3>Usage (today)</h3>
       <div id="usage">-</div>
+      <div class="row">
+        <div>
+          <div class="muted">Online</div>
+          <div id="tier_online">-</div>
+        </div>
+        <div>
+          <div class="muted">Local</div>
+          <div id="tier_local">-</div>
+        </div>
+        <div>
+          <div class="muted">Mock</div>
+          <div id="tier_mock">-</div>
+        </div>
+      </div>
     </div>
 
     <div class="card">
@@ -103,13 +117,18 @@ class StatusWebServer:
           document.getElementById('last_provider').textContent = data.last_provider || 'unknown';
           document.getElementById('last_local_base_url').textContent = data.last_local_base_url || '';
 
-          const u = data.usage || {}; const t = u.today || {};
+          const u = data.usage || {}; const t = u.today || {}; const tiers = u.tiers || {};
           document.getElementById('usage').innerHTML = `
             <table>
               <tr><th>Cost</th><td>$${(t.cost || 0).toFixed(4)} of $${(t.limit_cost || 0).toFixed(2)}</td></tr>
               <tr><th>Requests</th><td>${t.requests || 0} of ${t.limit_requests || 0}</td></tr>
               <tr><th>Remaining</th><td>$${(t.remaining_cost || 0).toFixed(4)} / ${t.remaining_requests || 0} requests</td></tr>
             </table>`;
+
+          const fmtTier = (d) => `reqs: ${d.requests||0}, cost: $${(d.cost||0).toFixed(4)}, tokens: ${d.tokens||0}<br/><span class="muted">last success: ${d.last_success ? new Date(d.last_success).toLocaleTimeString() : '-'}</span>`;
+          document.getElementById('tier_online').innerHTML = fmtTier(tiers.online || {});
+          document.getElementById('tier_local').innerHTML = fmtTier(tiers.local || {});
+          document.getElementById('tier_mock').innerHTML = fmtTier(tiers.mock || {});
 
           const insights = data.recent_insights || [];
           const cont = document.getElementById('insights');

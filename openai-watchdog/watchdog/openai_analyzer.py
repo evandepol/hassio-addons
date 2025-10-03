@@ -113,7 +113,7 @@ class OpenAIAnalyzer:
                 prompt="[TIER=mock] Using mock analysis",
                 response_text=json.dumps(mock_result) if isinstance(mock_result, dict) else str(mock_result),
                 usage=None,
-                cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'tier-mock', 'provider': 'mock'}
+                cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'tier-mock', 'provider': 'mock', 'success': True}
             )
             return mock_result
         
@@ -138,7 +138,7 @@ class OpenAIAnalyzer:
                 prompt="[BACKOFF] Skipping OpenAI call; using mock analysis",
                 response_text=json.dumps(mock_result) if isinstance(mock_result, dict) else str(mock_result),
                 usage=None,
-                cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'backoff-mock', 'provider': 'mock'}
+                cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'backoff-mock', 'provider': 'mock', 'success': True}
             )
             return mock_result
 
@@ -153,7 +153,7 @@ class OpenAIAnalyzer:
                 prompt="[MOCK] No API key/client; generated mock analysis based on changes",
                 response_text=json.dumps(mock_result) if isinstance(mock_result, dict) else str(mock_result),
                 usage=None,
-                cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'mock', 'provider': 'mock'}
+                cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'mock', 'provider': 'mock', 'success': True}
             )
             return mock_result
         
@@ -183,7 +183,7 @@ class OpenAIAnalyzer:
                         prompt="[TIER=local] Missing local_base_url; using mock",
                         response_text=json.dumps(mock_result),
                         usage=None,
-                        cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'tier-local-missing-url', 'provider': 'mock'}
+                        cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'tier-local-missing-url', 'provider': 'mock', 'success': True}
                     )
                     return mock_result
 
@@ -204,6 +204,7 @@ class OpenAIAnalyzer:
             # Calculate cost
             if usage is not None and hasattr(usage, 'prompt_tokens'):
                 cost_info = self._calculate_cost(usage)
+                cost_info['success'] = True
             else:
                 note = 'tier-local' if provider == 'local' else 'tier-online'
                 cost_info = {
@@ -273,7 +274,7 @@ class OpenAIAnalyzer:
                 prompt="[MOCK-FALLBACK] OpenAI API error; generated mock analysis",
                 response_text=json.dumps(mock_result) if isinstance(mock_result, dict) else str(mock_result),
                 usage=None,
-                cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'mock-fallback', 'provider': 'mock'}
+                cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'mock-fallback', 'provider': 'mock', 'success': False}
             )
             return mock_result
 
