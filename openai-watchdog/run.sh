@@ -55,6 +55,9 @@ init_environment() {
             "llama-3.2-3b")
                 MODEL_FILENAME="llama-3.2-3b-instruct-q4_k_m.gguf"
                 ;;
+            "tinyllama-1.1b")
+                MODEL_FILENAME="tinyllama-1.1b-chat-v1.0-q4_k_m.gguf"
+                ;;
             *)
                 bashio::log.error "Unsupported local_model: $local_model"
                 ;;
@@ -136,9 +139,16 @@ init_environment() {
                     # Default GGUF URL for Llama 3.2 3B Instruct Q4_K_M (community GGUF conversion)
                     # Note: Download may require accepting the model license on the hosting site.
                     local_model_url="${WATCHDOG_DEFAULT_MODEL_URL:-https://huggingface.co/TheBloke/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct.Q4_K_M.gguf}"
-                    # Optional: provide default checksum via env WATCHDOG_DEFAULT_MODEL_SHA256 if desired
+                    # Optional: checksum env override
                     if [ -z "$local_model_sha256" ] && [ -n "${WATCHDOG_DEFAULT_MODEL_SHA256:-}" ]; then
                         local_model_sha256="$WATCHDOG_DEFAULT_MODEL_SHA256"
+                    fi
+                    ;;
+                "tinyllama-1.1b")
+                    # Public TinyLlama 1.1B Chat Q4_K_M snapshot
+                    local_model_url="${WATCHDOG_DEFAULT_MODEL_URL_TINY:-https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf}"
+                    if [ -z "$local_model_sha256" ] && [ -n "${WATCHDOG_DEFAULT_MODEL_SHA256_TINY:-}" ]; then
+                        local_model_sha256="$WATCHDOG_DEFAULT_MODEL_SHA256_TINY"
                     fi
                     ;;
             esac
