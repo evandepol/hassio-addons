@@ -27,6 +27,9 @@ init_environment() {
     local local_n_threads=$(bashio::config 'local_n_threads' '0')
     local local_max_cpu_load=$(bashio::config 'local_max_cpu_load' '1.5')
     local local_max_runtime_ms=$(bashio::config 'local_max_runtime_ms' '3000')
+    local accept_model_license=$(bashio::config 'accept_model_license' 'false')
+    local local_model_url=$(bashio::config 'local_model_url' '')
+    local local_model_sha256=$(bashio::config 'local_model_sha256' '')
     local check_interval=$(bashio::config 'check_interval' '30')
     local insight_threshold=$(bashio::config 'insight_threshold' '0.8')
     local max_daily_calls=$(bashio::config 'max_daily_api_calls' '1000')
@@ -59,6 +62,9 @@ init_environment() {
     export WATCHDOG_LOCAL_N_THREADS="$local_n_threads"
     export WATCHDOG_LOCAL_MAX_CPU_LOAD="$local_max_cpu_load"
     export WATCHDOG_LOCAL_MAX_RUNTIME_MS="$local_max_runtime_ms"
+    export WATCHDOG_ACCEPT_MODEL_LICENSE="$accept_model_license"
+    export WATCHDOG_LOCAL_MODEL_URL="$local_model_url"
+    export WATCHDOG_LOCAL_MODEL_SHA256="$local_model_sha256"
     export WATCHDOG_CHECK_INTERVAL="$check_interval"
     export WATCHDOG_INSIGHT_THRESHOLD="$insight_threshold"
     export WATCHDOG_MAX_DAILY_CALLS="$max_daily_calls"
@@ -101,6 +107,30 @@ init_environment() {
         bashio::log.info "Local provider enabled (base URL: ${local_base_url:-not set}, provider: ${local_provider})"
     fi
     bashio::log.info "Check interval: ${check_interval}s, Cost limit: \$${cost_limit}/day"
+
+    # If local model file is missing but a URL is provided and user accepted license, download now
+    if [ "$local_enabled" = "true" ] && [ -z "$local_base_url" ]; then
+        if [ ! -f "$WATCHDOG_LOCAL_MODEL_PATH" ] && [ -n "$local_model_url" ]; then
+            if [ "$accept_model_license" != "true" ]; then
+                bashio::log.error "Model URL provided but 'accept_model_license' is false. Refusing to download."
+            else
+                bashio::log.info "Downloading local model to $WATCHDOG_LOCAL_MODEL_PATH from $local_model_url"
+                mkdir -p "$(dirname "$WATCHDOG_LOCAL_MODEL_PATH")"
+                if command -v curl >/dev/null 2>&1; then
+                    curl -L "$local_model_url" -o "$WATCHDOG_LOCAL_MODEL_PATH"
+                else
+                    wget -O "$WATCHDOG_LOCAL_MODEL_PATH" "$local_model_url"
+                fi
+                if [ -n "$local_model_sha256" ]; then
+                    echo "$local_model_sha256  $WATCHDOG_LOCAL_MODEL_PATH" | sha256sum -c - && bashio::log.info "Model checksum verified" || {
+                        bashio::log.error "Checksum verification failed for downloaded model";
+                        rm -f "$WATCHDOG_LOCAL_MODEL_PATH";
+                    }
+                fi
+                chmod 0644 "$WATCHDOG_LOCAL_MODEL_PATH" || true
+            fi
+        fi
+    fi
 }
 
 # Setup Home Assistant API access

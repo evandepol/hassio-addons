@@ -1,6 +1,6 @@
 name: "OpenAI Watchdog"
 description: "Intelligent Home Assistant monitoring with continuous OpenAI analysis"
-version: "1.0.39"
+version: "1.0.40"
 slug: "openai_watchdog"
 init: false
 
@@ -38,6 +38,13 @@ options:
   local_n_threads: 0            # 0 = auto
   local_max_cpu_load: 1.5
   local_max_runtime_ms: 3000
+  # Optional: runtime model retrieval (no build args required)
+  # You must set accept_model_license to true to allow runtime download.
+  # If local_model_url is provided and the model file is missing, the add-on
+  # will download it on start and verify checksum if local_model_sha256 is set.
+  accept_model_license: false
+  local_model_url: ""
+  local_model_sha256: ""
   check_interval: 30
   insight_threshold: 0.8
   max_daily_api_calls: 1000
@@ -63,6 +70,9 @@ schema:
   local_n_threads: "int(0,64)?"
   local_max_cpu_load: "float(0.5,8.0)?"
   local_max_runtime_ms: "int(500,60000)?"
+  accept_model_license: "bool?"
+  local_model_url: "str?"
+  local_model_sha256: "str?"
   check_interval: "int(10,300)?"
   insight_threshold: "float(0.5,1.0)?"
   max_daily_api_calls: "int(100,5000)?"
