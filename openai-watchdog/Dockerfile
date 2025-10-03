@@ -12,15 +12,15 @@ RUN apk add --no-cache \
 
 # Resolve musl/musl-dev mismatch and add build toolchain (single layer to avoid stale cache)
 RUN set -eux; \
-    apk update; \
-    apk upgrade --no-cache --available musl musl-utils; \
-    apk add --no-cache --virtual .build-deps \
-      build-base \
-      cmake \
-      ninja \
-      pkgconf \
-      musl-dev \
-      linux-headers
+        apk update; \
+        apk upgrade --no-cache --available; \
+        apk add --no-cache \
+            build-base \
+            cmake \
+            ninja \
+            pkgconf \
+            musl-dev \
+            linux-headers
 
 # Configure llama.cpp build (CPU-only) and prefer prebuilt wheels when available
 ENV CMAKE_ARGS="-DLLAMA_CUBLAS=OFF -DLLAMA_METAL=OFF -DLLAMA_OPENBLAS=OFF -DLLAMA_BLAS=OFF"
@@ -35,7 +35,7 @@ RUN pip3 install --no-cache-dir \
     llama-cpp-python[server]==0.2.90
 
 # Remove build dependencies to keep image small
-RUN apk del .build-deps || true
+RUN apk del build-base cmake ninja pkgconf musl-dev linux-headers || true
 
 # Create directory for monitoring data
 RUN mkdir -p /config/openai-watchdog
