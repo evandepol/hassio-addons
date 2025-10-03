@@ -9,12 +9,15 @@ RUN apk add --no-cache \
         bash \
         curl \
         jq \
+    && apk upgrade --no-cache musl musl-utils \
     && apk add --no-cache --virtual .build-deps \
         build-base \
         cmake \
         ninja \
         pkgconf \
+        musl-dev \
     && export CMAKE_ARGS="-DLLAMA_CUBLAS=OFF -DLLAMA_METAL=OFF -DLLAMA_OPENBLAS=OFF -DLLAMA_BLAS=OFF" \
+    && export LLAMA_CPP_PYTHON_PREBUILT=TRUE \
     && pip3 install --no-cache-dir \
         openai \
         pyyaml \
