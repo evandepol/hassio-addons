@@ -51,23 +51,6 @@ Features:
 
 [Documentation](hassio-access-point/README.md)
 
-### APC UPS Daemon
-
-[![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=apcupsd&repository_url=https%3A%2F%2Fgithub.com%2Fevandepol%2Fhassio-addons)
-
-Monitor and manage APC UPS devices with native apcupsd integration. This modernized add-on provides comprehensive UPS monitoring with advanced event handling and host control capabilities.
-
-Features:
-- Native apcupsd integration optimized for APC devices
-- 22 UPS event types with custom script support
-- Safe host shutdown/reboot through Home Assistant API
-- Email notifications via msmtp
-- USB and network UPS support
-- Comprehensive input validation and security
-- Modern Home Assistant integration
-
-[Documentation](apcupsd/README.md)
-
 ### Claude Watchdog
 
 [![Open your Home Assistant instance and show the dashboard of a Supervisor add-on.](https://my.home-assistant.io/badges/supervisor_addon.svg)](https://my.home-assistant.io/redirect/supervisor_addon/?addon=claude_watchdog&repository_url=https%3A%2F%2Fgithub.com%2Fevandepol%2Fhassio-addons)
