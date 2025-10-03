@@ -12,12 +12,13 @@ logger = logging.getLogger(__name__)
 class WatchdogMonitor:
     """Main monitoring service that coordinates all watchdog activities"""
     
-    def __init__(self, ha_client, openai_analyzer, cost_tracker, insight_manager, config):
+    def __init__(self, ha_client, openai_analyzer, cost_tracker, insight_manager, config, provider_policy=None):
         self.ha_client = ha_client
         self.openai_analyzer = openai_analyzer
         self.cost_tracker = cost_tracker
         self.insight_manager = insight_manager
         self.config = config
+        self.provider_policy = provider_policy
         
         self.running = False
         self.state_buffer = StateBuffer(max_size=1000)
@@ -69,11 +70,22 @@ class WatchdogMonitor:
         # Add changes to state buffer
         self.state_buffer.add_changes(changes)
         
-        # Analyze changes with OpenAI
+        # Choose provider (mock/local/online) per cycle
+        provider = None
+        local_base_url = None
+        try:
+            if self.provider_policy is not None:
+                provider, local_base_url = self.provider_policy.choose_provider(self.openai_analyzer, self.cost_tracker)
+        except Exception:
+            provider, local_base_url = None, None
+
+        # Analyze changes with selected provider
         analysis = await self.openai_analyzer.analyze_changes(
             changes=changes,
             context=self.state_buffer.get_context(),
-            monitoring_scope=self.config['monitoring_scope']
+            monitoring_scope=self.config['monitoring_scope'],
+            provider=provider,
+            local_base_url=local_base_url
         )
         
         # Track API cost

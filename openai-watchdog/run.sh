@@ -17,6 +17,11 @@ init_environment() {
     local openai_api_key=$(bashio::config 'openai_api_key' '')
     local openai_base_url=$(bashio::config 'openai_base_url' '')
     local openai_model=$(bashio::config 'openai_model' 'gpt-4o-mini')
+    local mode=$(bashio::config 'mode' 'auto')
+    local local_enabled=$(bashio::config 'local_enabled' 'false')
+    local local_base_url=$(bashio::config 'local_base_url' '')
+    local local_max_cpu_load=$(bashio::config 'local_max_cpu_load' '1.5')
+    local local_max_runtime_ms=$(bashio::config 'local_max_runtime_ms' '3000')
     local check_interval=$(bashio::config 'check_interval' '30')
     local insight_threshold=$(bashio::config 'insight_threshold' '0.8')
     local max_daily_calls=$(bashio::config 'max_daily_api_calls' '1000')
@@ -30,6 +35,11 @@ init_environment() {
     export OPENAI_API_KEY="$openai_api_key"
     export OPENAI_BASE_URL="$openai_base_url"
     export OPENAI_MODEL="$openai_model"
+    export WATCHDOG_MODE="$mode"
+    export WATCHDOG_LOCAL_ENABLED="$local_enabled"
+    export WATCHDOG_LOCAL_BASE_URL="$local_base_url"
+    export WATCHDOG_LOCAL_MAX_CPU_LOAD="$local_max_cpu_load"
+    export WATCHDOG_LOCAL_MAX_RUNTIME_MS="$local_max_runtime_ms"
     export WATCHDOG_CHECK_INTERVAL="$check_interval"
     export WATCHDOG_INSIGHT_THRESHOLD="$insight_threshold"
     export WATCHDOG_MAX_DAILY_CALLS="$max_daily_calls"
@@ -67,6 +77,9 @@ init_environment() {
     bashio::log.info "OpenAI Watchdog configured with model: $openai_model"
     if [ -n "$openai_base_url" ]; then
         bashio::log.info "Using custom OpenAI base URL: $openai_base_url"
+    fi
+    if [ "$local_enabled" = "true" ]; then
+        bashio::log.info "Local provider enabled (base URL: ${local_base_url:-not set})"
     fi
     bashio::log.info "Check interval: ${check_interval}s, Cost limit: \$${cost_limit}/day"
 }

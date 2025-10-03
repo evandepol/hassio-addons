@@ -34,6 +34,8 @@ class OpenAIAnalyzer:
         self.model = model
         self.insight_threshold = insight_threshold
         self.client = None
+        self.api_key: Optional[str] = None
+        self._client_cache: Dict[str, Any] = {}
         # API audit log path
         self.data_dir = os.getenv('OPENAI_WATCHDOG_DATA', '/config/openai-watchdog')
         self.api_log_path = os.path.join(self.data_dir, 'logs', 'openai_api.log')
@@ -67,6 +69,7 @@ class OpenAIAnalyzer:
             
         # Try to get API key from various sources
         api_key = self._get_api_key()
+        self.api_key = api_key
         if not api_key:
             logger.error("No OpenAI API key found")
             return
@@ -90,13 +93,27 @@ class OpenAIAnalyzer:
             logger.warning("Please set 'openai_api_key' in the Home Assistant add-on configuration")
         return api_key
     
-    async def analyze_changes(self, changes: List[Dict], context: Dict, monitoring_scope: List[str]) -> Dict[str, Any]:
+    async def analyze_changes(self, changes: List[Dict], context: Dict, monitoring_scope: List[str], provider: Optional[str] = None, local_base_url: Optional[str] = None) -> Dict[str, Any]:
         """Analyze state changes and return insights"""
         if not changes:
             return {'requires_attention': False, 'insights': []}
+
+        # Provider override: explicit mock
+        if provider == 'mock':
+            if mock_openai_analysis is not None:
+                mock_result = await mock_openai_analysis(self.model, changes)
+            else:
+                mock_result = {'requires_attention': False, 'insights': [], 'confidence': 0.7, 'processed_changes': len(changes), 'cost_info': {'model': self.model, 'estimated_tokens': 0, 'estimated_cost': 0.0, 'input_tokens': 0, 'output_tokens': 0, 'input_cost': 0.0, 'output_cost': 0.0}}
+            self._log_api_call(
+                prompt="[TIER=mock] Using mock analysis",
+                response_text=json.dumps(mock_result) if isinstance(mock_result, dict) else str(mock_result),
+                usage=None,
+                cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'tier-mock'}
+            )
+            return mock_result
         
         # If we're in a backoff window, skip real API calls and use mock
-        if self._is_in_backoff():
+        if provider != 'local' and self._is_in_backoff():
             remaining = int((self.backoff_until - datetime.utcnow()).total_seconds()) if self.backoff_until else 0
             if mock_openai_analysis is not None:
                 mock_result = await mock_openai_analysis(self.model, changes)
@@ -120,7 +137,7 @@ class OpenAIAnalyzer:
             )
             return mock_result
 
-        if not self.client:
+        if not self.client and provider != 'local':
             logger.warning("OpenAI client not initialized, using mock analysis")
             if mock_openai_analysis is not None:
                 mock_result = await mock_openai_analysis(self.model, changes)
@@ -140,8 +157,27 @@ class OpenAIAnalyzer:
             prompt = self._build_analysis_prompt(changes, context, monitoring_scope)
             logger.debug("OpenAI prompt (model=%s): %s", self.model, prompt)
             
+            # Select client based on provider
+            client = self.client
+            if provider == 'local':
+                if local_base_url:
+                    client = self._get_or_create_client(local_base_url)
+                else:
+                    logger.warning("Provider 'local' selected but no local_base_url provided; falling back to mock")
+                    if mock_openai_analysis is not None:
+                        mock_result = await mock_openai_analysis(self.model, changes)
+                    else:
+                        mock_result = {'requires_attention': False, 'insights': [], 'confidence': 0.7, 'processed_changes': len(changes), 'cost_info': {'model': self.model, 'estimated_tokens': 0, 'estimated_cost': 0.0, 'input_tokens': 0, 'output_tokens': 0, 'input_cost': 0.0, 'output_cost': 0.0}}
+                    self._log_api_call(
+                        prompt="[TIER=local] Missing local_base_url; using mock",
+                        response_text=json.dumps(mock_result),
+                        usage=None,
+                        cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'tier-local-missing-url'}
+                    )
+                    return mock_result
+
             # Make OpenAI API call
-            response = await self.client.chat.completions.create(
+            response = await client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": "You are an intelligent Home Assistant monitoring system. Analyze state changes and provide structured insights in JSON format."},
@@ -153,10 +189,22 @@ class OpenAIAnalyzer:
             
             # Extract response and usage info
             analysis_text = response.choices[0].message.content
-            usage = response.usage
-            
+            usage = getattr(response, 'usage', None)
             # Calculate cost
-            cost_info = self._calculate_cost(usage)
+            if usage is not None and hasattr(usage, 'prompt_tokens'):
+                cost_info = self._calculate_cost(usage)
+            else:
+                note = 'tier-local' if provider == 'local' else 'unknown'
+                cost_info = {
+                    'model': self.model,
+                    'estimated_tokens': 0,
+                    'estimated_cost': 0.0,
+                    'input_tokens': 0,
+                    'output_tokens': 0,
+                    'input_cost': 0.0,
+                    'output_cost': 0.0,
+                    'note': note
+                }
             
             # Process and structure the response
             structured_result = self._structure_analysis(analysis_text, changes)
@@ -190,7 +238,7 @@ class OpenAIAnalyzer:
                     })
                     mock_result['requires_attention'] = True
                 # Rate limit handling (429 / rate_limit_exceeded): apply backoff
-                if '429' in msg or 'rate_limit_exceeded' in msg or 'Rate limit' in msg:
+                if provider != 'local' and ('429' in msg or 'rate_limit_exceeded' in msg or 'Rate limit' in msg):
                     wait_s = self._parse_wait_seconds(msg) or self.backoff_seconds
                     self._apply_backoff(wait_s)
                     resume_in = int((self.backoff_until - datetime.utcnow()).total_seconds()) if self.backoff_until else wait_s
@@ -208,6 +256,22 @@ class OpenAIAnalyzer:
                 cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'mock-fallback'}
             )
             return mock_result
+
+    def _get_or_create_client(self, base_url: str):
+        if AsyncOpenAI is None:
+            return None
+        key = base_url.strip()
+        if key in self._client_cache:
+            return self._client_cache[key]
+        # Use configured API key if present; local servers typically ignore it
+        api_key = self.api_key or os.getenv('OPENAI_API_KEY') or 'local'
+        try:
+            client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+            self._client_cache[key] = client
+            return client
+        except Exception as e:
+            logger.error(f"Failed to create local client for {base_url}: {e}")
+            return self.client
 
     def _is_in_backoff(self) -> bool:
         try:

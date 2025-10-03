@@ -18,6 +18,7 @@ from openai_analyzer import OpenAIAnalyzer
 from cost_tracker import CostTracker
 from insight_manager import InsightManager
 from web_ui import StatusWebServer
+from provider_policy import ProviderPolicy
 
 # Configure logging
 logging.basicConfig(
@@ -41,6 +42,7 @@ class OpenAIWatchdogService:
         self.cost_tracker = None
         self.insight_manager = None
         self.web_server = None
+        self.provider_policy = None
         
         # Load configuration from environment
         self.config = self._load_config()
@@ -106,6 +108,9 @@ class OpenAIWatchdogService:
                 model=self.config['model'],
                 insight_threshold=self.config['insight_threshold']
             )
+
+            # Initialize provider policy (3-tier selection)
+            self.provider_policy = ProviderPolicy()
             
             # Initialize cost tracker
             self.cost_tracker = CostTracker(
@@ -127,7 +132,8 @@ class OpenAIWatchdogService:
                 openai_analyzer=self.openai_analyzer,
                 cost_tracker=self.cost_tracker,
                 insight_manager=self.insight_manager,
-                config=self.config
+                config=self.config,
+                provider_policy=self.provider_policy
             )
             # Optional: send a test notification on startup
             if os.getenv('WATCHDOG_SEND_TEST_NOTIFICATION', 'true').lower() == 'true':
