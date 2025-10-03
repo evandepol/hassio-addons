@@ -10,25 +10,25 @@ from .local_server import LocalServerManager
 
 
 class StatusWebServer:
-    """Tiny aiohttp server to expose status and insights via ingress"""
+  """Tiny aiohttp server to expose status and insights via ingress"""
 
-    def __init__(self, config, cost_tracker, insight_manager):
-        self.config = config
-        self.cost_tracker = cost_tracker
-        self.insight_manager = insight_manager
-        self.web_app = None
-        self.web_runner = None
+  def __init__(self, config, cost_tracker, insight_manager):
+    self.config = config
+    self.cost_tracker = cost_tracker
+    self.insight_manager = insight_manager
+    self.web_app = None
+    self.web_runner = None
 
-    async def start(self):
-        # Create app with a quieter access logger to reduce noise
-        access_logger = logging.getLogger('aiohttp.access')
-        try:
-            access_logger.setLevel(logging.WARNING)
-        except Exception:
-            pass
-        self.web_app = web.Application()
+  async def start(self):
+    # Create app with a quieter access logger to reduce noise
+    access_logger = logging.getLogger('aiohttp.access')
+    try:
+      access_logger.setLevel(logging.WARNING)
+    except Exception:
+      pass
+    self.web_app = web.Application()
 
-        html_str = """
+    html_str = """
 <!doctype html>
 <html>
   <head>
@@ -195,89 +195,92 @@ class StatusWebServer:
       </script>
   </body>
 </html>
-        """
+    """
 
-        async def status_handler(request):
-            # Bundled model status
-            bm_path = os.getenv('WATCHDOG_BUNDLED_MODEL', '').strip()
-            bm_sha = os.getenv('WATCHDOG_BUNDLED_MODEL_SHA256', '').strip()
-            bm_present = False
-            bm_size = None
-            try:
-                if bm_path and os.path.isfile(bm_path):
-                    bm_present = True
-                    bm_size = os.path.getsize(bm_path)
-            except Exception:
-                pass
-            return web.json_response({
-                'model': self.config['model'],
-                'check_interval': self.config['check_interval'],
-                'monitoring_scope': self.config['monitoring_scope'],
-                'notify_on_any_insight': self.config.get('notify_on_any_insight', False),
-                'mode': os.getenv('WATCHDOG_MODE', 'auto'),
-                'local_enabled': os.getenv('WATCHDOG_LOCAL_ENABLED', 'false').lower() == 'true',
-                'last_provider': self.config.get('last_provider', None),
-                'last_local_base_url': self.config.get('last_local_base_url', None),
-                'bundled_model': {
-                    'path': bm_path or None,
-                    'present': bm_present,
-                    'size_bytes': bm_size,
-                    'checksum_expected': True if bm_sha else False,
-                    'checksum': bm_sha or None
-                },
-                'usage': self.cost_tracker.get_usage_summary() if self.cost_tracker else {},
-                'recent_insights': self.insight_manager.get_recent_insights(24) if self.insight_manager else []
-            })
+    async def status_handler(request):
+      # Bundled model status
+      bm_path = os.getenv('WATCHDOG_BUNDLED_MODEL', '').strip()
+      bm_sha = os.getenv('WATCHDOG_BUNDLED_MODEL_SHA256', '').strip()
+      bm_present = False
+      bm_size = None
+      try:
+        if bm_path and os.path.isfile(bm_path):
+          bm_present = True
+          bm_size = os.path.getsize(bm_path)
+      except Exception:
+        pass
+      return web.json_response({
+        'model': self.config['model'],
+        'check_interval': self.config['check_interval'],
+        'monitoring_scope': self.config['monitoring_scope'],
+        'notify_on_any_insight': self.config.get('notify_on_any_insight', False),
+        'mode': os.getenv('WATCHDOG_MODE', 'auto'),
+        'local_enabled': os.getenv('WATCHDOG_LOCAL_ENABLED', 'false').lower() == 'true',
+        'last_provider': self.config.get('last_provider', None),
+        'last_local_base_url': self.config.get('last_local_base_url', None),
+        'bundled_model': {
+          'path': bm_path or None,
+          'present': bm_present,
+          'size_bytes': bm_size,
+          'checksum_expected': True if bm_sha else False,
+          'checksum': bm_sha or None,
+          'source_url': os.getenv('WATCHDOG_LOCAL_MODEL_URL_USED') or None,
+          'download_error': os.getenv('WATCHDOG_LOCAL_MODEL_DOWNLOAD_ERROR') or None
+        },
+        'usage': self.cost_tracker.get_usage_summary() if self.cost_tracker else {},
+        'recent_insights': self.insight_manager.get_recent_insights(24) if self.insight_manager else []
+      })
 
-        async def local_status_handler(request):
-            # Determine base URL: prefer dynamic env (embedded/external), fallback to last seen config
-            base_url = os.getenv('WATCHDOG_LOCAL_BASE_URL', '').strip() or (self.config.get('last_local_base_url') or '')
-            result = {'base_url': base_url or None, 'healthy': False, 'models': [], 'error': None}
-            if not base_url:
-                return web.json_response(result)
-            try:
-                mgr = LocalServerManager(base_url)
-                healthy = await mgr.is_healthy()
-                result['healthy'] = healthy
-                # Try to fetch models list from OpenAI-compatible /v1/models
-                url = base_url.rstrip('/') + '/v1/models'
-                timeout = aiohttp.ClientTimeout(total=2)
-                async with aiohttp.ClientSession(timeout=timeout) as session:
-                    async with session.get(url) as resp:
-                        if resp.status == 200:
-                            js = await resp.json()
-                            # Normalize
-                            if isinstance(js, dict) and 'data' in js and isinstance(js['data'], list):
-                                result['models'] = js['data']
-                            else:
-                                result['models'] = js if isinstance(js, list) else []
-                        else:
-                            result['error'] = f"HTTP {resp.status}"
-            except Exception as e:
-                result['error'] = str(e)
-            return web.json_response(result)
+    async def local_status_handler(request):
+      # Determine base URL: prefer dynamic env (embedded/external), fallback to last seen config
+      base_url = os.getenv('WATCHDOG_LOCAL_BASE_URL', '').strip() or (self.config.get('last_local_base_url') or '')
+      result = {'base_url': base_url or None, 'healthy': False, 'models': [], 'error': None}
+      if not base_url:
+        return web.json_response(result)
+      try:
+        mgr = LocalServerManager(base_url)
+        healthy = await mgr.is_healthy()
+        result['healthy'] = healthy
+        # Try to fetch models list from OpenAI-compatible /v1/models
+        url = base_url.rstrip('/') + '/v1/models'
+        timeout = aiohttp.ClientTimeout(total=2)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+          async with session.get(url) as resp:
+            if resp.status == 200:
+              js = await resp.json()
+              # Normalize
+              if isinstance(js, dict) and 'data' in js and isinstance(js['data'], list):
+                result['models'] = js['data']
+              else:
+                result['models'] = js if isinstance(js, list) else []
+            else:
+              result['error'] = f"HTTP {resp.status}"
+      except Exception as e:
+        result['error'] = str(e)
+      return web.json_response(result)
 
-        async def insights_handler(request):
-            return web.json_response({
-                'insights': self.insight_manager.get_recent_insights(168) if self.insight_manager else []
-            })
+    async def insights_handler(request):
+      return web.json_response({
+        'insights': self.insight_manager.get_recent_insights(168) if self.insight_manager else []
+      })
 
-        async def index_handler(request):
-            return web.Response(text=html_str, content_type='text/html')
+    async def index_handler(request):
+      return web.Response(text=html_str, content_type='text/html')
 
-        self.web_app.add_routes([
-            web.get('/', index_handler),
-            web.get('/index.html', index_handler),
-            web.get('/api/status', status_handler),
-            web.get('/api/local/status', local_status_handler),
-            web.get('/api/insights', insights_handler),
-        ])
+    self.web_app.add_routes([
+      web.get('/', index_handler),
+      web.get('/index.html', index_handler),
+      web.get('/api/status', status_handler),
+      web.get('/api/local/status', local_status_handler),
+      web.get('/api/insights', insights_handler),
+    ])
 
-        self.web_runner = web.AppRunner(self.web_app)
-        await self.web_runner.setup()
-        port = int(os.getenv('WATCHDOG_HTTP_PORT', '8099'))
-        site = web.TCPSite(self.web_runner, '0.0.0.0', port)
-        await site.start()
-    async def stop(self):
-        if self.web_runner:
-            await self.web_runner.cleanup()
+    self.web_runner = web.AppRunner(self.web_app)
+    await self.web_runner.setup()
+    port = int(os.getenv('WATCHDOG_HTTP_PORT', '8099'))
+    site = web.TCPSite(self.web_runner, '0.0.0.0', port)
+    await site.start()
+
+  async def stop(self):
+    if self.web_runner:
+      await self.web_runner.cleanup()
