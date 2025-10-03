@@ -13,6 +13,12 @@ RUN apk add --no-cache \
 # Resolve musl/musl-dev mismatch and add build toolchain
 RUN apk update
 RUN apk upgrade --no-cache --available musl musl-utils
+## Ensure musl-dev matches installed musl revision to satisfy libc-dev dependency
+RUN set -eux; \
+    musl_pkg=$(apk info -v musl | head -n1); \
+    musl_ver=${musl_pkg#musl-}; \
+    echo "Installing musl-dev=$musl_ver to match musl"; \
+    apk add --no-cache --virtual .musl musl-dev=$musl_ver || true
 RUN apk add --no-cache --virtual .build-deps \
     build-base \
     cmake \
@@ -32,7 +38,8 @@ RUN pip3 install --no-cache-dir \
     llama-cpp-python[server]==0.2.90
 
 # Remove build dependencies to keep image small
-RUN apk del .build-deps
+RUN apk del .build-deps || true
+RUN apk del .musl || true
 
 # Create directory for monitoring data
 RUN mkdir -p /config/openai-watchdog
