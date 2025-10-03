@@ -13,7 +13,8 @@ RUN apk add --no-cache \
         openai \
         pyyaml \
         schedule \
-        python-dateutil 
+        python-dateutil \
+        llama-cpp-python[server]==0.2.90
 
 # Create directory for monitoring data
 RUN mkdir -p /config/openai-watchdog

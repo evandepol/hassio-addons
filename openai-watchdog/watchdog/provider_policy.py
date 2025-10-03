@@ -37,6 +37,10 @@ class ProviderPolicy:
         """
         mode = self.mode
         online_allowed = cost_tracker.can_make_request() and not analyzer._is_in_backoff()
+        # Reload dynamic base URL if run.sh started an embedded server
+        dyn_base = os.getenv('WATCHDOG_LOCAL_BASE_URL', '').strip()
+        if dyn_base and dyn_base != self.local_base_url:
+            self.local_base_url = dyn_base
         local_ok = self._local_available()
 
         # Mode overrides
@@ -60,7 +64,7 @@ class ProviderPolicy:
         if not self.local_enabled:
             return False
         if not self.local_base_url:
-            # No endpoint configured yet
+            # If embedded server was started, run.sh will set WATCHDOG_LOCAL_BASE_URL; otherwise, local is unavailable
             return False
         try:
             load1, _, _ = os.getloadavg()

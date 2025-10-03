@@ -20,6 +20,10 @@ init_environment() {
     local mode=$(bashio::config 'mode' 'auto')
     local local_enabled=$(bashio::config 'local_enabled' 'false')
     local local_base_url=$(bashio::config 'local_base_url' '')
+    local local_provider=$(bashio::config 'local_provider' 'llama_cpp')
+    local local_model_path=$(bashio::config 'local_model_path' '')
+    local local_server_port=$(bashio::config 'local_server_port' '8088')
+    local local_n_threads=$(bashio::config 'local_n_threads' '0')
     local local_max_cpu_load=$(bashio::config 'local_max_cpu_load' '1.5')
     local local_max_runtime_ms=$(bashio::config 'local_max_runtime_ms' '3000')
     local check_interval=$(bashio::config 'check_interval' '30')
@@ -38,6 +42,10 @@ init_environment() {
     export WATCHDOG_MODE="$mode"
     export WATCHDOG_LOCAL_ENABLED="$local_enabled"
     export WATCHDOG_LOCAL_BASE_URL="$local_base_url"
+    export WATCHDOG_LOCAL_PROVIDER="$local_provider"
+    export WATCHDOG_LOCAL_MODEL_PATH="$local_model_path"
+    export WATCHDOG_LOCAL_SERVER_PORT="$local_server_port"
+    export WATCHDOG_LOCAL_N_THREADS="$local_n_threads"
     export WATCHDOG_LOCAL_MAX_CPU_LOAD="$local_max_cpu_load"
     export WATCHDOG_LOCAL_MAX_RUNTIME_MS="$local_max_runtime_ms"
     export WATCHDOG_CHECK_INTERVAL="$check_interval"
@@ -79,7 +87,7 @@ init_environment() {
         bashio::log.info "Using custom OpenAI base URL: $openai_base_url"
     fi
     if [ "$local_enabled" = "true" ]; then
-        bashio::log.info "Local provider enabled (base URL: ${local_base_url:-not set})"
+        bashio::log.info "Local provider enabled (base URL: ${local_base_url:-not set}, provider: ${local_provider})"
     fi
     bashio::log.info "Check interval: ${check_interval}s, Cost limit: \$${cost_limit}/day"
 }
@@ -112,7 +120,33 @@ start_monitoring_service() {
     bashio::log.info "WATCHDOG_CHECK_INTERVAL=${WATCHDOG_CHECK_INTERVAL}"
     bashio::log.info "WATCHDOG_COST_LIMIT=${WATCHDOG_COST_LIMIT}"
     
-    # Start the Python monitoring application
+    # Optionally start embedded local LLM server if enabled and no explicit base URL is set
+    if [ "$WATCHDOG_LOCAL_ENABLED" = "true" ] && [ -z "$WATCHDOG_LOCAL_BASE_URL" ]; then
+        if [ "$WATCHDOG_LOCAL_PROVIDER" = "llama_cpp" ]; then
+            if [ -z "$WATCHDOG_LOCAL_MODEL_PATH" ]; then
+                bashio::log.error "Local provider enabled but no local_model_path set; running without local server"
+            else
+                bashio::log.info "Launching embedded llama.cpp server on port ${WATCHDOG_LOCAL_SERVER_PORT} with model ${WATCHDOG_LOCAL_MODEL_PATH}"
+                mkdir -p /config/openai-watchdog/models
+                # Start server in background
+                GGML_QNT_K_S=1 python3 -m llama_cpp.server \
+                  --model "$WATCHDOG_LOCAL_MODEL_PATH" \
+                  --host 0.0.0.0 \
+                  --port "$WATCHDOG_LOCAL_SERVER_PORT" \
+                  --n_threads "$WATCHDOG_LOCAL_N_THREADS" \
+                  --chat-format openai &
+                LOCAL_SRV_PID=$!
+                echo $LOCAL_SRV_PID > /var/run/watchdog_local_llm.pid || true
+                # Export discovered base URL for the analyzer
+                export WATCHDOG_LOCAL_BASE_URL="http://127.0.0.1:${WATCHDOG_LOCAL_SERVER_PORT}"
+                bashio::log.info "Embedded local LLM available at ${WATCHDOG_LOCAL_BASE_URL}"
+                # Give the server a moment to start
+                sleep 2
+            fi
+        fi
+    fi
+
+    # Start the Python monitoring application (PID 1)
     cd /app
     exec python3 main.py
 }
