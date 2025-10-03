@@ -23,6 +23,7 @@ init_environment() {
     local enable_learning=$(bashio::config 'enable_learning' 'true')
     local log_api_payloads_to_stdout=$(bashio::config 'log_api_payloads_to_stdout' 'false')
     local notify_on_any_insight=$(bashio::config 'notify_on_any_insight' 'false')
+    local send_test_notification_on_start=$(bashio::config 'send_test_notification_on_start' 'true')
     
     # Export configuration as environment variables
     export OPENAI_API_KEY="$openai_api_key"
@@ -34,6 +35,8 @@ init_environment() {
     export WATCHDOG_ENABLE_LEARNING="$enable_learning"
     export WATCHDOG_LOG_API_STDOUT="$log_api_payloads_to_stdout"
     export WATCHDOG_NOTIFY_ON_ANY_INSIGHT="$notify_on_any_insight"
+    export WATCHDOG_SEND_TEST_NOTIFICATION="$send_test_notification_on_start"
+    export WATCHDOG_HTTP_PORT="8099"
     
     # Get monitoring scope from config: could be YAML list or string
     local scope_json

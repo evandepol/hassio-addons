@@ -1,6 +1,6 @@
 name: "OpenAI Watchdog"
 description: "Intelligent Home Assistant monitoring with continuous OpenAI analysis"
-version: "1.0.12"
+version: "1.0.13"
 slug: "openai_watchdog"
 init: false
 
@@ -13,7 +13,8 @@ arch:
 url: "https://github.com/evandepol/hassio-addons"
 
 # No web interface - runs as background service
-ingress: false
+ingress: true
+ingress_port: 8099
 panel_icon: mdi:shield-search
 panel_title: "OpenAI Watchdog"
 panel_admin: true
@@ -36,6 +37,7 @@ options:
   cost_limit_daily: 1.00
   log_api_payloads_to_stdout: false
   notify_on_any_insight: false
+  send_test_notification_on_start: true
 
 schema:
   openai_api_key: "password"
@@ -49,6 +51,7 @@ schema:
   cost_limit_daily: "float(0.10,10.00)?"
   log_api_payloads_to_stdout: "bool?"
   notify_on_any_insight: "bool?"
+  send_test_notification_on_start: "bool?"
 
 # Volume mapping for persistent storage
 map:

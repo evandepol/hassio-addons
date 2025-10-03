@@ -17,6 +17,7 @@ from ha_client import HomeAssistantClient
 from openai_analyzer import OpenAIAnalyzer
 from cost_tracker import CostTracker
 from insight_manager import InsightManager
+from aiohttp import web
 
 # Configure logging
 logging.basicConfig(
@@ -39,6 +40,8 @@ class OpenAIWatchdogService:
         self.openai_analyzer = None
         self.cost_tracker = None
         self.insight_manager = None
+        self.web_app = None
+        self.web_runner = None
         
         # Load configuration from environment
         self.config = self._load_config()
@@ -127,6 +130,24 @@ class OpenAIWatchdogService:
                 insight_manager=self.insight_manager,
                 config=self.config
             )
+            # Optional: send a test notification on startup
+            if os.getenv('WATCHDOG_SEND_TEST_NOTIFICATION', 'true').lower() == 'true':
+                try:
+                    await self.ha_client.send_notification(
+                        service=self.config['notification_service'],
+                        title="OpenAI Watchdog",
+                        message="Startup check: notifications are working."
+                    )
+                    logger.info("Startup test notification sent")
+                except Exception as e:
+                    logger.error(f"Failed to send startup test notification: {e}")
+
+            # Start lightweight web status server (for ingress)
+            try:
+                await self._start_web()
+                logger.info("Web status server started for ingress")
+            except Exception as e:
+                logger.warning(f"Web status server failed to start: {e}")
             
             logger.info("All components initialized successfully")
             
@@ -165,6 +186,44 @@ class OpenAIWatchdogService:
         
         if self.monitor:
             await self.monitor.stop_monitoring()
+        try:
+            await self._stop_web()
+        except Exception:
+            pass
+
+    async def _start_web(self):
+        """Start a tiny aiohttp web app exposing current status"""
+        self.web_app = web.Application()
+
+        async def status_handler(request):
+            return web.json_response({
+                'model': self.config['model'],
+                'check_interval': self.config['check_interval'],
+                'monitoring_scope': self.config['monitoring_scope'],
+                'notify_on_any_insight': self.config.get('notify_on_any_insight', False),
+                'usage': self.cost_tracker.get_usage_summary() if self.cost_tracker else {},
+                'recent_insights': self.insight_manager.get_recent_insights(24) if self.insight_manager else []
+            })
+
+        async def insights_handler(request):
+            return web.json_response({
+                'insights': self.insight_manager.get_recent_insights(168) if self.insight_manager else []
+            })
+
+        self.web_app.add_routes([
+            web.get('/api/status', status_handler),
+            web.get('/api/insights', insights_handler),
+        ])
+
+        self.web_runner = web.AppRunner(self.web_app)
+        await self.web_runner.setup()
+        port = int(os.getenv('WATCHDOG_HTTP_PORT', '8099'))
+        site = web.TCPSite(self.web_runner, '0.0.0.0', port)
+        await site.start()
+
+    async def _stop_web(self):
+        if self.web_runner:
+            await self.web_runner.cleanup()
 
 # Service entry point
 async def main():
