@@ -115,6 +115,10 @@ class OpenAIAnalyzer:
                 usage=None,
                 cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'tier-mock', 'provider': 'mock', 'success': True}
             )
+            try:
+                mock_result['cost_info'] = {'model': self.model, 'estimated_tokens': 0, 'estimated_cost': 0.0, 'input_tokens': 0, 'output_tokens': 0, 'input_cost': 0.0, 'output_cost': 0.0, 'note': 'tier-mock', 'provider': 'mock', 'success': True}
+            except Exception:
+                pass
             return mock_result
         
         # If we're in a backoff window, skip real API calls and use mock
@@ -140,6 +144,10 @@ class OpenAIAnalyzer:
                 usage=None,
                 cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'backoff-mock', 'provider': 'mock', 'success': True}
             )
+            try:
+                mock_result['cost_info'] = {'model': self.model, 'estimated_tokens': 0, 'estimated_cost': 0.0, 'input_tokens': 0, 'output_tokens': 0, 'input_cost': 0.0, 'output_cost': 0.0, 'note': 'backoff-mock', 'provider': 'mock', 'success': True}
+            except Exception:
+                pass
             return mock_result
 
         if not self.client and provider != 'local':
@@ -155,6 +163,10 @@ class OpenAIAnalyzer:
                 usage=None,
                 cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'mock', 'provider': 'mock', 'success': True}
             )
+            try:
+                mock_result['cost_info'] = {'model': self.model, 'estimated_tokens': 0, 'estimated_cost': 0.0, 'input_tokens': 0, 'output_tokens': 0, 'input_cost': 0.0, 'output_cost': 0.0, 'note': 'mock', 'provider': 'mock', 'success': True}
+            except Exception:
+                pass
             return mock_result
         
         try:
@@ -185,6 +197,10 @@ class OpenAIAnalyzer:
                         usage=None,
                         cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'tier-local-missing-url', 'provider': 'mock', 'success': True}
                     )
+                    try:
+                        mock_result['cost_info'] = {'model': self.model, 'estimated_tokens': 0, 'estimated_cost': 0.0, 'input_tokens': 0, 'output_tokens': 0, 'input_cost': 0.0, 'output_cost': 0.0, 'note': 'tier-local-missing-url', 'provider': 'mock', 'success': True}
+                    except Exception:
+                        pass
                     return mock_result
 
             # Make OpenAI API call
@@ -216,7 +232,8 @@ class OpenAIAnalyzer:
                     'input_cost': 0.0,
                     'output_cost': 0.0,
                     'note': note,
-                    'provider': provider_used
+                    'provider': provider_used,
+                    'success': True
                 }
             
             # Process and structure the response
@@ -276,6 +293,10 @@ class OpenAIAnalyzer:
                 usage=None,
                 cost_info={'model': self.model, 'estimated_cost': 0.0, 'note': 'mock-fallback', 'provider': 'mock', 'success': False}
             )
+            try:
+                mock_result['cost_info'] = {'model': self.model, 'estimated_tokens': 0, 'estimated_cost': 0.0, 'input_tokens': 0, 'output_tokens': 0, 'input_cost': 0.0, 'output_cost': 0.0, 'note': 'mock-fallback', 'provider': 'mock', 'success': False}
+            except Exception:
+                pass
             return mock_result
 
     def _get_or_create_client(self, base_url: str):

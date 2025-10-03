@@ -99,8 +99,25 @@ class WatchdogMonitor:
         except Exception:
             pass
         
-        # Track API cost
-        self.cost_tracker.record_request(analysis.get('cost_info', {}))
+        # Track API cost (ensure cost_info exists and reflects provider + success)
+        cost_info = analysis.get('cost_info') or {}
+        if not cost_info:
+            try:
+                cost_info = {
+                    'model': self.openai_analyzer.model,
+                    'estimated_tokens': 0,
+                    'estimated_cost': 0.0,
+                    'input_tokens': 0,
+                    'output_tokens': 0,
+                    'input_cost': 0.0,
+                    'output_cost': 0.0,
+                    'note': 'no-cost-info',
+                    'provider': analysis.get('provider', provider or 'online'),
+                    'success': False,
+                }
+            except Exception:
+                cost_info = {'estimated_cost': 0.0, 'provider': analysis.get('provider', provider or 'online'), 'success': False}
+        self.cost_tracker.record_request(cost_info)
         
         # Process any insights or alerts
         if analysis.get('requires_attention', False):
