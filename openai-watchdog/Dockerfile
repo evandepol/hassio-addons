@@ -50,14 +50,22 @@ WORKDIR /config
 COPY run.sh /run.sh
 COPY watchdog/ /app/watchdog/
 
-# Optionally bundle a model at build time (provide BUNDLE_MODEL_URL)
+# Optionally bundle a model at build time (provide BUNDLE_MODEL_URL and optional BUNDLE_MODEL_SHA256)
 ARG BUNDLE_MODEL_URL=""
+ARG BUNDLE_MODEL_SHA256=""
+ENV WATCHDOG_BUNDLED_MODEL_SHA256="$BUNDLE_MODEL_SHA256"
 RUN set -eux; \
         if [ -n "$BUNDLE_MODEL_URL" ]; then \
             echo "Downloading bundled model from $BUNDLE_MODEL_URL"; \
             apk add --no-cache curl ca-certificates; \
             curl -L "$BUNDLE_MODEL_URL" -o "$WATCHDOG_BUNDLED_MODEL"; \
-            sha256sum "$WATCHDOG_BUNDLED_MODEL" || true; \
+            if [ -n "$BUNDLE_MODEL_SHA256" ]; then \
+                echo "$BUNDLE_MODEL_SHA256  $WATCHDOG_BUNDLED_MODEL" | sha256sum -c -; \
+                echo "Model checksum verified"; \
+            else \
+                echo "No BUNDLE_MODEL_SHA256 provided; skipping checksum validation"; \
+            fi; \
+            chmod 0644 "$WATCHDOG_BUNDLED_MODEL"; \
         else \
             echo "No BUNDLE_MODEL_URL provided; building without embedded model"; \
         fi

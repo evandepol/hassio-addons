@@ -107,6 +107,7 @@ class StatusWebServer:
           <button id="btn_local_status">Check status</button>
         </div>
       </div>
+      <div id="bundled_info" class="muted">-</div>
       <div id="local_status" class="muted">-</div>
     </div>
 
@@ -128,6 +129,13 @@ class StatusWebServer:
           document.getElementById('local_enabled').textContent = data.local_enabled ? 'Yes' : 'No';
           document.getElementById('last_provider').textContent = data.last_provider || 'unknown';
           document.getElementById('last_local_base_url').textContent = data.last_local_base_url || '';
+
+          const bm = data.bundled_model || {};
+          const present = bm.present ? 'present' : 'absent';
+          const sizeMB = bm.size_bytes ? (bm.size_bytes/1024/1024).toFixed(1) + ' MB' : '-';
+          const checksum = bm.checksum ? (bm.checksum.substring(0,12) + '…') : 'none';
+          const checksumExp = bm.checksum_expected ? 'provided' : 'none';
+          document.getElementById('bundled_info').innerHTML = `Bundled model: <code>${bm.path || '-'}</code> — ${present} • size: ${sizeMB} • checksum: ${checksumExp}${bm.checksum ? ' ('+checksum+')' : ''}`;
 
           const u = data.usage || {}; const t = u.today || {}; const tiers = u.tiers || {};
           document.getElementById('usage').innerHTML = `
@@ -183,13 +191,24 @@ class StatusWebServer:
         }
       });
       // Auto-refresh periodically to reflect new insights and tier changes
-    setInterval(load, 10000);
-    </script>
+      setInterval(load, 10000);
+      </script>
   </body>
 </html>
         """
 
         async def status_handler(request):
+            # Bundled model status
+            bm_path = os.getenv('WATCHDOG_BUNDLED_MODEL', '').strip()
+            bm_sha = os.getenv('WATCHDOG_BUNDLED_MODEL_SHA256', '').strip()
+            bm_present = False
+            bm_size = None
+            try:
+                if bm_path and os.path.isfile(bm_path):
+                    bm_present = True
+                    bm_size = os.path.getsize(bm_path)
+            except Exception:
+                pass
             return web.json_response({
                 'model': self.config['model'],
                 'check_interval': self.config['check_interval'],
@@ -199,6 +218,13 @@ class StatusWebServer:
                 'local_enabled': os.getenv('WATCHDOG_LOCAL_ENABLED', 'false').lower() == 'true',
                 'last_provider': self.config.get('last_provider', None),
                 'last_local_base_url': self.config.get('last_local_base_url', None),
+                'bundled_model': {
+                    'path': bm_path or None,
+                    'present': bm_present,
+                    'size_bytes': bm_size,
+                    'checksum_expected': True if bm_sha else False,
+                    'checksum': bm_sha or None
+                },
                 'usage': self.cost_tracker.get_usage_summary() if self.cost_tracker else {},
                 'recent_insights': self.insight_manager.get_recent_insights(24) if self.insight_manager else []
             })
@@ -243,7 +269,7 @@ class StatusWebServer:
             web.get('/', index_handler),
             web.get('/index.html', index_handler),
             web.get('/api/status', status_handler),
-    web.get('/api/local/status', local_status_handler),
+            web.get('/api/local/status', local_status_handler),
             web.get('/api/insights', insights_handler),
         ])
 
@@ -252,7 +278,6 @@ class StatusWebServer:
         port = int(os.getenv('WATCHDOG_HTTP_PORT', '8099'))
         site = web.TCPSite(self.web_runner, '0.0.0.0', port)
         await site.start()
-
     async def stop(self):
         if self.web_runner:
             await self.web_runner.cleanup()

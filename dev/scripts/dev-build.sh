@@ -47,7 +47,12 @@ if [ "$INSTANCE" == "hadocker" ]; then
     echo "Building for hadocker (standalone container) deployment..."
     
     # Build Docker image
-    docker build -t "local/$ADDON_NAME:$DEV_VERSION" .
+    BUILD_ARGS=()
+    if [ "$ADDON_NAME" = "openai-watchdog" ] && [ -n "${BUNDLE_MODEL_URL:-}" ]; then
+        echo "Using BUNDLE_MODEL_URL for openai-watchdog: $BUNDLE_MODEL_URL"
+        BUILD_ARGS+=(--build-arg "BUNDLE_MODEL_URL=${BUNDLE_MODEL_URL}")
+    fi
+    docker build "${BUILD_ARGS[@]}" -t "local/$ADDON_NAME:$DEV_VERSION" .
     
     # Process template and generate hadocker deployment
     HADOCKER_DIR="$(dirname "$0")/../../../hadocker"
@@ -73,7 +78,12 @@ if [ "$INSTANCE" == "hadocker" ]; then
 elif [ "$INSTANCE" == "hassdeb" ]; then
     # For Debian Supervised deployment via Samba
     echo "Building for hassdeb (Debian Supervised) deployment..."
-    docker build -t "local/$ADDON_NAME:$DEV_VERSION" .
+    BUILD_ARGS=()
+    if [ "$ADDON_NAME" = "openai-watchdog" ] && [ -n "${BUNDLE_MODEL_URL:-}" ]; then
+        echo "Using BUNDLE_MODEL_URL for openai-watchdog: $BUNDLE_MODEL_URL"
+        BUILD_ARGS+=(--build-arg "BUNDLE_MODEL_URL=${BUNDLE_MODEL_URL}")
+    fi
+    docker build "${BUILD_ARGS[@]}" -t "local/$ADDON_NAME:$DEV_VERSION" .
     
     # Copy addon directory to hassdeb mount
     HASSDEB_DIR="$(dirname "$0")/../../../hacabin"
@@ -88,7 +98,12 @@ elif [ "$INSTANCE" == "hassdeb" ]; then
 else
     # For HAOS VirtualBox deployment via Samba
     echo "Building for HAOS deployment..."
-    docker build -t "local/$ADDON_NAME:$DEV_VERSION" .
+    BUILD_ARGS=()
+    if [ "$ADDON_NAME" = "openai-watchdog" ] && [ -n "${BUNDLE_MODEL_URL:-}" ]; then
+        echo "Using BUNDLE_MODEL_URL for openai-watchdog: $BUNDLE_MODEL_URL"
+        BUILD_ARGS+=(--build-arg "BUNDLE_MODEL_URL=${BUNDLE_MODEL_URL}")
+    fi
+    docker build "${BUILD_ARGS[@]}" -t "local/$ADDON_NAME:$DEV_VERSION" .
     
     # Copy addon directory to haos mount
     HAOS_DIR="$(dirname "$0")/../../../haos"
