@@ -46,9 +46,9 @@ WORKDIR /config
 
 # Copy application files
 COPY run.sh /run.sh
-COPY watchdog/ /app/
+COPY watchdog/ /app/watchdog/
 RUN chmod +x /run.sh
-RUN chmod +x /app/*.py
+RUN chmod +x /app/watchdog/*.py
 
 # Use exec form for better signal handling
 CMD ["/run.sh"]

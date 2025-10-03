@@ -148,7 +148,9 @@ start_monitoring_service() {
 
     # Start the Python monitoring application (PID 1)
     cd /app
-    exec python3 main.py
+    # Ensure Python can find our package
+    export PYTHONPATH="/app:${PYTHONPATH}"
+    exec python3 -m watchdog.main
 }
 
 # Main execution
