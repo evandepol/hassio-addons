@@ -62,83 +62,50 @@ class HomeAssistantClient:
             since = datetime.now(timezone.utc) - timedelta(minutes=5)
         
         try:
-            # Use history API to get changes
+            # Deterministic approach: always query with filter_entity_id in chunks
             session = await self._get_session()
-            # Use timezone-aware ISO format (e.g., 2025-10-02T20:54:00+00:00) and pass via query param for safe encoding
             from datetime import timezone
             since_iso = since.astimezone(timezone.utc).replace(microsecond=0).isoformat()
             now_iso = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-            params = {
-                'start_time': since_iso,
-                'end_time': now_iso,
-                'minimal_response': '1'
-            }
-            
-            async with session.get(
-                f'{self.url}/api/history/period',
-                headers=self.headers,
-                params=params
-            ) as response:
-                if response.status == 200:
-                    history = await response.json()
-                    changes = self._extract_changes_from_history(history, scope)
-                    logger.debug(f"Found {len(changes)} state changes since {since_iso}")
-                    return changes
-                else:
-                    # Log status and timestamp form for troubleshooting; avoid leaking headers
-                    try:
-                        snippet = await response.text()
-                        snippet = snippet[:200]
-                    except Exception:
-                        snippet = ''
-                    logger.error(f"Failed to get history: {response.status} (start_time={since_iso}) {snippet}")
 
-                    # Fallback: If server requires filter_entity_id, query in chunks by scoped entities
-                    if 'filter_entity_id is missing' in snippet.lower():
-                        try:
-                            # Get entities in scope
-                            states = await self.get_current_state(scope)
-                            entity_ids = list(states.keys())
-                            if not entity_ids:
-                                return []
-                            # Chunk entity IDs to avoid URL length limits
-                            CHUNK_SIZE = 150
-                            aggregated_history = []
-                            for i in range(0, len(entity_ids), CHUNK_SIZE):
-                                chunk = entity_ids[i:i+CHUNK_SIZE]
-                                chunk_params = {
-                                    'start_time': since_iso,
-                                    'end_time': now_iso,
-                                    'minimal_response': '1',
-                                    'filter_entity_id': ','.join(chunk)
-                                }
-                                async with session.get(
-                                    f'{self.url}/api/history/period',
-                                    headers=self.headers,
-                                    params=chunk_params
-                                ) as chunk_resp:
-                                    if chunk_resp.status == 200:
-                                        chunk_hist = await chunk_resp.json()
-                                        # history is a list of lists; aggregate
-                                        aggregated_history.extend(chunk_hist)
-                                    else:
-                                        chunk_txt = await chunk_resp.text()
-                                        logger.warning(
-                                            f"History chunk failed: {chunk_resp.status} for {len(chunk)} entities; {chunk_txt[:120]}"
-                                        )
-                            if aggregated_history:
-                                changes = self._extract_changes_from_history(aggregated_history, scope)
-                                logger.info(
-                                    f"History fallback used: {len(changes)} changes from {len(entity_ids)} entities in {((len(entity_ids)-1)//CHUNK_SIZE)+1} calls"
-                                )
-                                return changes
-                        except Exception as fe:
-                            logger.error(f"History fallback error: {fe}")
-                        # If fallback fails, return empty safely
-                        return []
+            # Determine scoped entities
+            states = await self.get_current_state(scope)
+            entity_ids = list(states.keys())
+            if not entity_ids:
+                return []
+
+            CHUNK_SIZE = 150
+            aggregated_history: List[List[Dict]] = []
+            for i in range(0, len(entity_ids), CHUNK_SIZE):
+                chunk = entity_ids[i:i+CHUNK_SIZE]
+                chunk_params = {
+                    'start_time': since_iso,
+                    'end_time': now_iso,
+                    'minimal_response': '1',
+                    'filter_entity_id': ','.join(chunk)
+                }
+                async with session.get(
+                    f'{self.url}/api/history/period',
+                    headers=self.headers,
+                    params=chunk_params
+                ) as chunk_resp:
+                    if chunk_resp.status == 200:
+                        chunk_hist = await chunk_resp.json()
+                        aggregated_history.extend(chunk_hist)
                     else:
-                        return []
-                    
+                        chunk_txt = await chunk_resp.text()
+                        logger.warning(
+                            f"History chunk failed: {chunk_resp.status} for {len(chunk)} entities; {chunk_txt[:120]}"
+                        )
+
+            if not aggregated_history:
+                return []
+
+            changes = self._extract_changes_from_history(aggregated_history, scope)
+            logger.debug(
+                f"History query: {len(changes)} changes from {len(entity_ids)} entities in {((len(entity_ids)-1)//CHUNK_SIZE)+1} calls"
+            )
+            return changes
         except Exception as e:
             logger.error(f"Error getting recent changes: {e}")
             return []
