@@ -12,9 +12,12 @@ RUN apk add --no-cache \
 
 # Resolve musl/musl-dev mismatch and add build toolchain (single layer to avoid stale cache)
 RUN set -eux; \
-        apk update; \
-        apk upgrade --no-cache --available; \
-        apk add --no-cache \
+    # Unpin musl packages from world to allow upgrade if the base image pinned exact versions
+    sed -i -E 's/^musl=[^[:space:]]+$/musl/' /etc/apk/world || true; \
+    sed -i -E 's/^musl-utils=[^[:space:]]+$/musl-utils/' /etc/apk/world || true; \
+    apk update; \
+    apk upgrade --no-cache --available; \
+    apk add --no-cache \
             build-base \
             cmake \
             ninja \
