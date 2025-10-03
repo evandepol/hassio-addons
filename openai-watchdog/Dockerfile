@@ -1,4 +1,4 @@
-ARG BUILD_FROM
+ARG BUILD_FROM=ghcr.io/hassio-addons/base:16.0.1
 FROM ${BUILD_FROM}
 
 # Install packages for monitoring service (Alpine-based HA base)
@@ -10,20 +10,17 @@ RUN apk add --no-cache \
     curl \
     jq
 
-# Resolve musl/musl-dev mismatch and add build toolchain
-RUN apk update
-RUN apk upgrade --no-cache --available musl musl-utils
-## Ensure musl-dev matches installed musl revision to satisfy libc-dev dependency
+# Resolve musl/musl-dev mismatch and add build toolchain (single layer to avoid stale cache)
 RUN set -eux; \
-    musl_pkg=$(apk info -v musl | head -n1); \
-    musl_ver=${musl_pkg#musl-}; \
-    echo "Installing musl-dev=$musl_ver to match musl"; \
-    apk add --no-cache --virtual .musl musl-dev=$musl_ver || true
-RUN apk add --no-cache --virtual .build-deps \
-    build-base \
-    cmake \
-    ninja \
-    pkgconf
+    apk update; \
+    apk upgrade --no-cache --available musl musl-utils; \
+    apk add --no-cache --virtual .build-deps \
+      build-base \
+      cmake \
+      ninja \
+      pkgconf \
+      musl-dev \
+      linux-headers
 
 # Configure llama.cpp build (CPU-only) and prefer prebuilt wheels when available
 ENV CMAKE_ARGS="-DLLAMA_CUBLAS=OFF -DLLAMA_METAL=OFF -DLLAMA_OPENBLAS=OFF -DLLAMA_BLAS=OFF"
@@ -39,7 +36,6 @@ RUN pip3 install --no-cache-dir \
 
 # Remove build dependencies to keep image small
 RUN apk del .build-deps || true
-RUN apk del .musl || true
 
 # Create directory for monitoring data
 RUN mkdir -p /config/openai-watchdog
